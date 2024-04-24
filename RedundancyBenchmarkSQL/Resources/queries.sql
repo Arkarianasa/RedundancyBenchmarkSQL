@@ -10,7 +10,7 @@ FROM Customer
 WHERE Country = 'Czech Republic'
 
 -- Version: correct
-SELECT FirstName, LastName, 'Czech Republic'
+SELECT FirstName, LastName, 'Czech Republic' AS Country
 FROM Customer
 WHERE Country = 'Czech Republic'
 -- end
@@ -277,7 +277,7 @@ WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Rock')
 
 -- Source: Brass and Goldberg
 -- Reference: 3 Error 26
--- Description: UNION that could be replaced by UNION ALL. !!!
+-- Description: UNION that could be replaced by UNION ALL.
 -- Version: error
 SELECT TrackId, Name
 FROM Track
@@ -350,18 +350,6 @@ FROM Track
 -- end
 
 -- Source: Brass and Goldberg
--- Reference: 2.5 Error 17
--- Description: Applying COUNT() to a column that is unique.
--- Version: error
-SELECT Count(Name)
-FROM Track
-
--- Version: correct
-SELECT Count(*)
-FROM Track
--- end
-
--- Source: Brass and Goldberg
 -- Reference: 2.5 Error 15, 2.6 Error 22
 -- Description: Unnecessary single distinct input value aggregations that could be replaced by SELECT DISTINCT.
 -- Version: error
@@ -404,7 +392,7 @@ FROM Artist
 
 -- Source: Brass and Goldberg
 -- Reference: 2.6 Error 20
--- Description: Using group by on query with only a single group is unnecessary and redundant.
+-- Description: Using group by on query with only a single group is unnecessary and redundant. !!!
 -- Version: error
 SELECT COUNT(*) AS NumberOfTracks, SUM(Milliseconds) AS TotalLength
 FROM Track
