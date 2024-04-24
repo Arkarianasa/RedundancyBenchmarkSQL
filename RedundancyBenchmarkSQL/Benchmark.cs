@@ -57,8 +57,8 @@ namespace RedundancyBenchmarkSQL
             }
             for (int i = 0; i < queries.Count(); i++)
             {
-                List<string> correctPlan = GetQueryExecutionPlan(queries.queryList[i].GetCorrectQuery());
-                List<string> redundantPlan = GetQueryExecutionPlan(queries.queryList[i].GetRedundantQuery());
+                List<string> correctPlan = GetQueryExecutionPlan(queries.queryList[i].GetCorrectQuery(providerName));
+                List<string> redundantPlan = GetQueryExecutionPlan(queries.queryList[i].GetRedundantQuery(providerName));
 
                 switch (providerName)
                 {
@@ -137,44 +137,23 @@ namespace RedundancyBenchmarkSQL
             }
         }
 
-        private List<string> parseXmlPlanToOperations(string executionPlanXml)
-        {
-            List<string> operations = new List<string>();
-
-            // Parse the XML to extract important operations
-            if (!string.IsNullOrEmpty(executionPlanXml))
-            {
-                XDocument xDoc = XDocument.Parse(executionPlanXml);
-                foreach (XElement relOp in xDoc.Descendants().Where(x => x.Name.LocalName == "RelOp"))
-                {
-                    XAttribute nodeName = relOp.Attribute("PhysicalOp");
-                    if (nodeName != null)
-                    {
-                        operations.Add(nodeName.Value);
-                    }
-                }
-            }
-
-            return operations;
-        }
-
         private List<string> GetSqlServerExecutionPlan(string query)
         {
+            List<string> planLines = new List<string>();
+
             // Create and open the connection
             using (DbConnection connection = factory.CreateConnection())
             {
                 connection.ConnectionString = connectionString;
                 connection.Open();
 
-                // Enable the execution plan XML output
+                // Enable the execution plan output
                 using (DbCommand command = connection.CreateCommand())
                 {
-                    command.CommandText = "SET SHOWPLAN_XML ON";
+                    command.CommandText = "SET SHOWPLAN_ALL ON";
                     command.ExecuteNonQuery();
                 }
 
-                // Create the command to execute the user query
-                string executionPlanXml = string.Empty;
                 using (DbCommand command = connection.CreateCommand())
                 {
                     command.CommandText = query;
@@ -182,22 +161,26 @@ namespace RedundancyBenchmarkSQL
                     // Execute the command and fetch the execution plan
                     using (DbDataReader reader = command.ExecuteReader())
                     {
-                        if (reader.Read())
+                        int counter = 0;
+                        while (reader.Read())
                         {
-                            // The execution plan is in the first column as XML
-                            executionPlanXml = reader.GetString(0);
+                            if (counter++ > 0)
+                            {
+                                string planLine = reader.GetString(0);
+                                planLines.Add(planLine);
+                            }
                         }
                     }
                 }
 
-                // Disable the execution plan XML output
+                // Disable the execution plan output
                 using (DbCommand command = connection.CreateCommand())
                 {
-                    command.CommandText = "SET SHOWPLAN_XML OFF";
+                    command.CommandText = "SET SHOWPLAN_ALL OFF";
                     command.ExecuteNonQuery();
                 }
 
-                return parseXmlPlanToOperations(executionPlanXml);
+                return planLines;
             }
         }
         
@@ -242,8 +225,7 @@ namespace RedundancyBenchmarkSQL
                     {
                         while (reader.Read())
                         {
-                            // Each row contains a part of the execution plan
-                            string planPart = reader.GetString(0); // Assuming plan text is in the first column
+                            string planPart = reader.GetString(0);
                             operations.Add(planPart);
                         }
                     }
@@ -261,18 +243,15 @@ namespace RedundancyBenchmarkSQL
             {
                 connection.Open();
 
-                // Set the current schema to OTHER_SCHEMA
+                // Set the current schema to LAS0084_SP
                 string setSchemaQuery = "ALTER SESSION SET CURRENT_SCHEMA = LAS0084_SP";
                 using (OracleCommand schemaCmd = new OracleCommand(setSchemaQuery, connection))
                 {
                     schemaCmd.ExecuteNonQuery();
                 }
 
-
                 // Insert the execution plan of your query into PLAN_TABLE
-                string[] parts = query.Split(new char[] { ';' }, 2);  // Split into at most 2 parts
-                string cleanedQuery = parts[0].Replace("\n", " ").Replace("as ", "");
-                string explainPlanQuery = $"EXPLAIN PLAN FOR {cleanedQuery}";
+                string explainPlanQuery = $"EXPLAIN PLAN FOR {query}";
                 using (OracleCommand cmd = new OracleCommand(explainPlanQuery, connection))
                 {
                     cmd.ExecuteNonQuery();
@@ -287,10 +266,14 @@ namespace RedundancyBenchmarkSQL
                 {
                     using (OracleDataReader reader = cmd.ExecuteReader())
                     {
+                        int counter = 0;
                         while (reader.Read())
                         {
-                            string planLine = reader.GetString(0);
-                            planLines.Add(planLine);
+                            if (counter++ > 1)
+                            {
+                                string planLine = reader.GetString(0);
+                                planLines.Add(planLine);
+                            }
                         }
                     }
                 }

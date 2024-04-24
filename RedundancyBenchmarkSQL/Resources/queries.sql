@@ -7,12 +7,13 @@
 -- Version: error
 SELECT FirstName, LastName, Country
 FROM Customer
-WHERE Country = 'Czech Republic';
+WHERE Country = 'Czech Republic'
 
 -- Version: correct
 SELECT FirstName, LastName, 'Czech Republic'
 FROM Customer
-WHERE Country = 'Czech Republic';
+WHERE Country = 'Czech Republic'
+-- end
 
 ----------------------------------------
 -- Category: Distinct
@@ -22,40 +23,29 @@ WHERE Country = 'Czech Republic';
 -- Description: Using distinct on already unique values.
 -- Version: error
 SELECT DISTINCT(MediaTypeId)
-FROM MediaType;
+FROM MediaType
 
 -- Version: correct
 SELECT MediaTypeId
-FROM MediaType;
+FROM MediaType
+-- end
 
 ----------------------------------------
 -- Category: Conditions
 ----------------------------------------
 -- Source: Brass and Goldberg
 -- Reference: 2.4. Error 8
--- Description: InvoiceId is unique for each invoice therefore BillingCountry condition is unnecessary and redundant.
--- Version: error
-SELECT *
-FROM Invoice
-WHERE InvoiceId = 1 AND BillingCountry = 'Germany';
-
--- Version: correct
-SELECT *
-FROM Invoice
-WHERE InvoiceId = 1;
-
--- Source: Brass and Goldberg
--- Reference: 2.4. Error 8
 -- Description: Duplicated (redundant) conditions with OR operator.
 -- Version: error
 SELECT *
 FROM Customer
-WHERE Country = 'USA' OR Country = 'USA';
+WHERE Country = 'USA' OR Country = 'USA'
 
 -- Version: correct
 SELECT *
 FROM Customer
-WHERE Country = 'USA';
+WHERE Country = 'USA'
+-- end
 
 -- Source: Brass and Goldberg
 -- Reference: 2.4. Error 8
@@ -63,12 +53,13 @@ WHERE Country = 'USA';
 -- Version: error
 SELECT *
 FROM Invoice
-WHERE BillingCity = 'Oslo' AND BillingCity = 'Oslo';
+WHERE BillingCity = 'Oslo' AND BillingCity = 'Oslo'
 
 -- Version: correct
 SELECT *
 FROM Invoice
-WHERE BillingCity = 'Oslo';
+WHERE BillingCity = 'Oslo'
+-- end
 
 -- Source: Brass and Goldberg
 -- Reference: 1. Introduction
@@ -76,12 +67,13 @@ WHERE BillingCity = 'Oslo';
 -- Version: error
 SELECT *
 FROM Album
-WHERE Title = 'Fireball' AND Title = 'Outbreak';
+WHERE Title = 'Fireball' AND Title = 'Outbreak'
 
 -- Version: correct
 SELECT *
 FROM Album
-WHERE Title = 'Impossible title';
+WHERE 1 = 0
+-- end
 
 -- Source: Brass and Goldberg
 -- Reference: 2.4. Error 8
@@ -90,12 +82,13 @@ WHERE Title = 'Impossible title';
 SELECT Name
 FROM Track
 WHERE UnitPrice < 1 AND
-      UnitPrice > 1.5;
+      UnitPrice > 1.5
 
 -- Version: correct
 SELECT Name
 FROM Track
-WHERE UnitPrice < -5;
+WHERE 1 = 0
+-- end
 
 -- Source: Brass and Goldberg
 -- Reference: 2.4. Error 8
@@ -104,67 +97,66 @@ WHERE UnitPrice < -5;
 SELECT *
 FROM Track
 WHERE Milliseconds > 300000 AND
-      Milliseconds > 200000;
+      Milliseconds > 200000
 
 -- Version: correct
 SELECT *
 FROM Track
-WHERE Milliseconds > 300000;
+WHERE Milliseconds > 300000
+-- end
 
--- Source: Brass and Goldberg
--- Reference: 2.4. Error 8
--- Description: Redundant values in the IN list.
+-- Description: Duplicate values in the IN list.
 -- Version: error
 SELECT *
 FROM Track
-WHERE GenreId IN (1, 1, 2, 3, 3);
+WHERE GenreId IN (1, 1, 2, 3, 3)
 
 -- Version: correct
 SELECT *
 FROM Track
-WHERE GenreId IN (1, 2, 3);
+WHERE GenreId IN (1, 2, 3)
+-- end
 
 -- Description: Conditioning attribute to be from any of its unique values.
 -- Version: error
 SELECT *
 FROM InvoiceLine
-WHERE TrackId IN (SELECT TrackId FROM InvoiceLine);
+WHERE TrackId IN (SELECT TrackId FROM InvoiceLine)
 
 -- Version: correct
 SELECT *
-FROM InvoiceLine;
+FROM InvoiceLine
+-- end
 
--- Description: Conditioning attribute to be from any of its unique values - all employees are from Canada.
--- Version: error
-SELECT *
-FROM Employee
-WHERE Country = 'Canada';
-
--- Version: correct
-SELECT *
-FROM Employee;
-
+-- Source: Brass and Goldberg
+-- Reference: 2.4 Error 11
 -- Description: Unnecessary condition, comparing name to "anything".
 -- Version: error
 SELECT TrackId, Name
 FROM Track
-WHERE Name LIKE '%';
+WHERE Name LIKE '%'
 
 -- Version: correct
 SELECT TrackId, Name
-FROM Track;
+FROM Track
+-- end
 
+-- Source: Brass and Goldberg
+-- Reference: 2.4 Error 12, 4 Error 34
 -- Description: Using LIKE without wildcards.
 -- Version: error
 SELECT FirstName, LastName
 FROM Customer
-WHERE Country LIKE 'USA';
+WHERE Country LIKE 'USA'
 
 -- Version: correct
 SELECT FirstName, LastName
 FROM Customer
-WHERE Country = 'USA';
+WHERE Country = 'USA'
+-- end
 
+-- Source: Brass and Goldberg
+-- Reference: 2.4 Error 14
 -- Description: Unnecessary IN/EXISTS condition that could be replaced by simple comparison.
 -- Version: error
 SELECT *
@@ -172,15 +164,58 @@ FROM Invoice
 WHERE BillingCountry NOT IN
 (SELECT BillingCountry
  FROM Invoice
- WHERE BillingCountry = 'Germany');
+ WHERE BillingCountry = 'Germany')
 
 -- Version: correct
 SELECT *
 FROM Invoice
-WHERE BillingCountry != 'Germany';
+WHERE BillingCountry != 'Germany'
+-- end
+
+-- Source: Brass and Goldberg
+-- Reference: 2.4 Error 13
+-- Description: Unnecessarily complicated SELECT in EXISTS-subquery. (using unnecessarily DISTINCT)
+-- Version: error
+SELECT *
+FROM Album
+WHERE EXISTS (
+    SELECT DISTINCT TrackId
+    FROM Track
+    WHERE Album.AlbumId = Track.AlbumId
+)
+
+-- Version: correct
+SELECT *
+FROM Album
+WHERE EXISTS (
+    SELECT TrackId
+    FROM Track
+    WHERE Album.AlbumId = Track.AlbumId
+)
+-- end
+
+-- Description: Unnecessarily complicated JOIN with DISTINCT that can be replaced by simpler EXISTS.
+-- Version: error
+SELECT DISTINCT Album.AlbumId, Album.Title
+FROM Album
+JOIN Track ON Album.AlbumId = Track.AlbumId
+JOIN Genre ON Track.GenreId = Genre.GenreId
+WHERE Genre.Name = 'Pop'
+
+-- Version: correct
+SELECT Album.AlbumId, Album.Title
+FROM Album
+WHERE EXISTS (
+    SELECT 1
+    FROM Track
+    JOIN Genre ON Track.GenreId = Genre.GenreId
+    WHERE Track.AlbumId = Album.AlbumId AND Genre.Name = 'Pop'
+)
+-- end
+
 
 ----------------------------------------
--- Category: Joins
+-- Category: Joins and Unions
 ----------------------------------------
 -- Source: Brass and Goldberg
 -- Reference: 2.3. Error 6
@@ -189,107 +224,231 @@ WHERE BillingCountry != 'Germany';
 SELECT Invoice.InvoiceId, Invoice.Total
 FROM Invoice
 JOIN Customer ON Invoice.CustomerId = Customer.CustomerId
-WHERE Invoice.Total < 1;
+WHERE Invoice.Total < 1
 
 -- Version: correct
 SELECT Invoice.InvoiceId, Invoice.Total
 FROM Invoice
-WHERE Invoice.Total < 1;
+WHERE Invoice.Total < 1
+-- end
 
+-- Source: Brass and Goldberg
+-- Reference: 2.2 Error 4
 -- Description: JOINing table on itself that just duplicates output columns.
 -- Version: error
 SELECT *
 FROM Genre as g1
-JOIN Genre as g2 ON g1.GenreId=g2.GenreId;
+JOIN Genre as g2 ON g1.GenreId=g2.GenreId
 
 -- Version: correct
 SELECT GenreId, Name, GenreId, Name
-FROM Genre;
+FROM Genre
 
+-- Version: oracle error
+SELECT *
+FROM Genre g1
+JOIN Genre g2 ON g1.GenreId=g2.GenreId
+
+-- Version: oracle correct
+SELECT GenreId, Name, GenreId, Name
+FROM Genre
+-- end
+
+-- Source: Brass and Goldberg
+-- Reference: 2.8 Error 23
 -- Description: Unnecessary UNION.
 -- Version: error
-SELECT *
-FROM Genre
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Rock')
+
 UNION
-SELECT *
-FROM Genre;
+
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Jazz')
 
 -- Version: correct
-SELECT *
-FROM Genre;
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Rock')
+   OR GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Jazz')
+-- end
 
+-- Source: Brass and Goldberg
+-- Reference: 3 Error 26
+-- Description: UNION that could be replaced by UNION ALL. !!!
+-- Version: error
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Classical')
+
+UNION
+
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Hip Hop/Rap')
+
+-- Version: correct
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Classical')
+
+UNION ALL
+
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Hip Hop/Rap')
+-- end
+
+-- Source: Brass and Goldberg
+-- Reference: 4 Error 35, 36
 -- Description: Using outer join that can be replaced by inner join. All tuples generated by the outer join are eliminated by the WHERE-condition.
 -- Version: error
 SELECT t.TrackId, t.Name, il.InvoiceLineId
 FROM Track t LEFT OUTER JOIN InvoiceLine il ON t.TrackId = il.TrackId
-WHERE il.InvoiceLineId IS NOT NULL;
+WHERE il.InvoiceLineId IS NOT NULL
 
 -- Version: correct
 SELECT t.TrackId, t.Name, il.InvoiceLineId
 FROM Track t 
-INNER JOIN InvoiceLine il ON t.TrackId = il.TrackId;
+INNER JOIN InvoiceLine il ON t.TrackId = il.TrackId
+-- end
+
+-- Source: Brass and Goldberg
+-- Reference: 4 Error 35
+-- Description: Condition on left table in left outer join that excludes all possible join partners.
+-- Version: error
+SELECT E.FirstName, E.LastName, COUNT(C.CustomerId) AS NumberOfCustomers
+FROM Employee E 
+LEFT OUTER JOIN Customer C
+ON E.EmployeeId = C.SupportRepId AND E.Title = 'Sales Support Agent'
+GROUP BY E.FirstName, E.LastName
+HAVING COUNT(C.CustomerId) > 0
+
+-- Version: correct
+SELECT E.FirstName, E.LastName, COUNT(C.CustomerId) AS NumberOfCustomers
+FROM Employee E 
+LEFT OUTER JOIN Customer C ON E.EmployeeId = C.SupportRepId
+WHERE E.Title = 'Sales Support Agent'
+GROUP BY E.FirstName, E.LastName
+-- end
 
 ----------------------------------------
 -- Category: Aggregations
 ----------------------------------------
+-- Source: Brass and Goldberg
+-- Reference: 2.5 Error 17
 -- Description: Applying COUNT() to a column that is unique.
 -- Version: error
 SELECT Count(TrackId)
-FROM Track;
+FROM Track
 
 -- Version: correct
 SELECT Count(*)
-FROM Track;
+FROM Track
+-- end
 
+-- Source: Brass and Goldberg
+-- Reference: 2.5 Error 17
 -- Description: Applying COUNT() to a column that is unique.
 -- Version: error
 SELECT Count(Name)
-FROM Track;
+FROM Track
 
 -- Version: correct
 SELECT Count(*)
-FROM Track;
+FROM Track
+-- end
 
+-- Source: Brass and Goldberg
+-- Reference: 2.5 Error 15, 2.6 Error 22
 -- Description: Unnecessary single distinct input value aggregations that could be replaced by SELECT DISTINCT.
 -- Version: error
 SELECT MAX(UnitPrice)
 FROM Track
-GROUP BY UnitPrice;
+GROUP BY UnitPrice
 
 -- Version: correct
 SELECT DISTINCT(UnitPrice)
-FROM Track;
+FROM Track
+-- end
 
+-- Source: Brass and Goldberg
+-- Reference: 2.5 Error 16
 -- Description: Unnecessary DISTINCT in MIN / MAX aggregations.
 -- Version: error
 SELECT MAX(DISTINCT Milliseconds)
-FROM Track;
+FROM Track
 
 -- Version: correct
 SELECT MAX(Milliseconds)
-FROM Track;
+FROM Track
+-- end
 
 ----------------------------------------
 -- Category: Grouping
 ----------------------------------------
+-- Source: Brass and Goldberg
+-- Reference: 2.6 Error 19
 -- Description: Using group by on id is unnecessary and redundant because there is always only one tuple per id.
 -- Version: error
 SELECT ArtistId, COUNT(*)
 FROM Artist
-GROUP BY ArtistId;
+GROUP BY ArtistId
 
 -- Version: correct
 SELECT ArtistId, '1'
-FROM Artist;
+FROM Artist
+-- end
+
+-- Source: Brass and Goldberg
+-- Reference: 2.6 Error 20
+-- Description: Using group by on query with only a single group is unnecessary and redundant.
+-- Version: error
+SELECT COUNT(*) AS NumberOfTracks, SUM(Milliseconds) AS TotalLength
+FROM Track
+GROUP BY MediaTypeId
+HAVING MIN(MediaTypeId) = MAX(MediaTypeId)
+
+-- Version: correct
+SELECT COUNT(*) AS NumberOfTracks, SUM(Milliseconds) AS TotalLength
+FROM Track
+-- end
+
+-- Source: Brass and Goldberg
+-- Reference: 2.6 Error 18
+-- Description: Unnecessary GROUP BY in EXISTS subquery.
+-- Version: error
+SELECT * 
+FROM Artist
+WHERE EXISTS (
+    SELECT 1 
+    FROM Album
+    WHERE ArtistId = Artist.ArtistId AND Artist.Name = 'AC/DC'
+    GROUP BY ArtistId
+)
+
+-- Version: correct
+SELECT * 
+FROM Artist
+WHERE EXISTS (
+    SELECT 1 
+    FROM Album
+    WHERE ArtistId = Artist.ArtistId AND Artist.Name = 'AC/DC'
+)
+-- end
 
 ---------------- Having ----------------
 ----------------------------------------
+-- Source: Brass and Goldberg
+-- Reference: 2.9 Error 25
 -- Description: Doing the join condition under HAVING instead of in WHERE is possible, but has awful performance.
 -- Version: error
 SELECT Invoice.BillingCity, COUNT(*)
 FROM Invoice, InvoiceLine
 GROUP BY Invoice.BillingCity, Invoice.InvoiceId
-HAVING Invoice.InvoiceId = InvoiceLine.InvoiceId;
+HAVING Invoice.InvoiceId = InvoiceLine.InvoiceId
 
 /*
 Semantic errors that can cause redundant parts in the SQL query execution plan:

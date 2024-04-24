@@ -56,16 +56,72 @@ namespace RedundancyBenchmarkSQL
             string[] lines = File.ReadAllLines(filePath);
 
             string category = "";
-            string source = null;
-            string reference = null;
+            string source = "";
+            string reference = "";
             string description = "";
             string version = "";
+
             string redundancyQuery = "";
             string correctQuery = "";
 
+            string sqlserverRedundancyQuery = "";
+            string sqlserverCorrectQuery = "";
+
+            string oracleRedundancyQuery = "";
+            string oracleCorrectQuery = "";
+
+            string postgreRedundancyQuery = "";
+            string postgreCorrectQuery = "";
+
+            string mysqlRedundancyQuery = "";
+            string mysqlCorrectQuery = "";
+
             foreach (string line in lines)
             {
-                if (line.StartsWith("-- Category:"))
+                if (line.StartsWith("-- end"))
+                {
+                    Query currentQuery = new Query(category, description, correctQuery, redundancyQuery);
+
+                    if (source != "" && reference != "")
+                        currentQuery.AddSourceAndReference(source, reference);
+
+                    if (sqlserverRedundancyQuery != "" && sqlserverCorrectQuery != "")
+                        currentQuery.SetSqlServerQueries(sqlserverCorrectQuery, sqlserverRedundancyQuery);
+
+                    if (oracleRedundancyQuery != "" && oracleCorrectQuery != "")
+                        currentQuery.SetOracleQueries(oracleCorrectQuery, oracleRedundancyQuery);
+
+                    if (postgreRedundancyQuery != "" && postgreCorrectQuery != "")
+                        currentQuery.SetPostgreSqlQueries(postgreCorrectQuery, postgreRedundancyQuery);
+
+                    if (mysqlRedundancyQuery != "" && mysqlCorrectQuery != "")
+                        currentQuery.SetMySqlQueries(mysqlCorrectQuery, mysqlRedundancyQuery);
+
+                    AddQuery(currentQuery);
+
+                    // reset parameters for next query                    
+                    source = "";
+                    reference = "";
+
+                    description = "";
+                    version = "";
+
+                    redundancyQuery = "";
+                    correctQuery = "";
+
+                    sqlserverRedundancyQuery = "";
+                    sqlserverCorrectQuery = "";
+
+                    oracleRedundancyQuery = "";
+                    oracleCorrectQuery = "";
+
+                    postgreRedundancyQuery = "";
+                    postgreCorrectQuery = "";
+
+                    mysqlRedundancyQuery = "";
+                    mysqlCorrectQuery = "";
+                }
+                else if (line.StartsWith("-- Category:"))
                 {
                     category = line.Split(':')[1].Trim();
                 }
@@ -87,32 +143,39 @@ namespace RedundancyBenchmarkSQL
                 }
                 else if (!string.IsNullOrWhiteSpace(line))
                 {
-                    if (version == "error")
+                    switch(version)
                     {
-                        redundancyQuery += line + "\n";
+                        case "error":
+                            redundancyQuery += line + "\n";
+                            break;
+                        case "correct":
+                            correctQuery += line + "\n";
+                            break;
+                        case "sqlserver error":
+                            sqlserverRedundancyQuery += line + "\n";
+                            break;
+                        case "sqlserver correct":
+                            sqlserverCorrectQuery += line + "\n";
+                            break;
+                        case "oracle error":
+                            oracleRedundancyQuery += line + "\n";
+                            break;
+                        case "oracle correct":
+                            oracleCorrectQuery += line + "\n";
+                            break;
+                        case "postgre error":
+                            postgreRedundancyQuery += line + "\n";
+                            break;
+                        case "postgre correct":
+                            postgreCorrectQuery += line + "\n";
+                            break;
+                        case "mysql error":
+                            mysqlRedundancyQuery += line + "\n";
+                            break;
+                        case "mysql correct":
+                            mysqlCorrectQuery += line + "\n";
+                            break;
                     }
-                    else if (version == "correct")
-                    {
-                        correctQuery += line + "\n";
-                    }
-                }
-                else if (redundancyQuery != "" && correctQuery != "")
-                {
-                    Query currentQuery = new Query(category, description, correctQuery, redundancyQuery);
-                    if (source != null && reference != null)
-                    {
-                        currentQuery.AddSourceAndReference(source, reference);
-                    }
-                    AddQuery(currentQuery);
-
-                    // reset parameters for next query
-                    currentQuery = null;
-                    source = null;
-                    reference = null;
-                    description = "";
-                    version = "";
-                    redundancyQuery = "";
-                    correctQuery = "";
                 }
             }
         }

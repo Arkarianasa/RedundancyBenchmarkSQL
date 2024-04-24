@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration.Provider;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,12 +10,18 @@ namespace RedundancyBenchmarkSQL
     internal class Query
     {
         string Category;
-        string Source = null;
-        string Reference = null;
+        string Source = "";
+        string Reference = "";
         string Description;
 
-        string CorrectQuery;
-        string RedundantQuery;
+        //string CorrectQuery;
+        //string RedundantQuery;
+        Dictionary<string, string> DefaultQueries = new Dictionary<string, string>();
+
+        Dictionary<string, string> SqlServerQueries = new Dictionary<string, string>();
+        Dictionary<string, string> OracleQueries = new Dictionary<string, string>();
+        Dictionary<string, string> PostgreSqlQueries = new Dictionary<string, string>();
+        Dictionary<string, string> MySqlQueries = new Dictionary<string, string>();
 
         Dictionary<string, List<string>> SqlServerPlan = new Dictionary<string, List<string>>();
         Dictionary<string, List<string>> OraclePlan = new Dictionary<string, List<string>>();
@@ -24,8 +31,33 @@ namespace RedundancyBenchmarkSQL
         {
             Category = category;
             Description = description;
-            CorrectQuery = correctQuery;
-            RedundantQuery = redundantQuery;
+
+            DefaultQueries.Add("correct", correctQuery);
+            DefaultQueries.Add("redundant", redundantQuery);
+        }
+
+        public void SetSqlServerQueries(string correctQuery, string redundantQuery)
+        {
+            SqlServerQueries.Add("correct", correctQuery);
+            SqlServerQueries.Add("redundant", redundantQuery);
+        }
+
+        public void SetOracleQueries(string correctQuery, string redundantQuery)
+        {
+            OracleQueries.Add("correct", correctQuery);
+            OracleQueries.Add("redundant", redundantQuery);
+        }
+
+        public void SetPostgreSqlQueries(string correctQuery, string redundantQuery)
+        {
+            PostgreSqlQueries.Add("correct", correctQuery);
+            PostgreSqlQueries.Add("redundant", redundantQuery);
+        }
+
+        public void SetMySqlQueries(string correctQuery, string redundantQuery)
+        {
+            MySqlQueries.Add("correct", correctQuery);
+            MySqlQueries.Add("redundant", redundantQuery);
         }
 
         public void AddSourceAndReference(string source, string reference)
@@ -36,12 +68,102 @@ namespace RedundancyBenchmarkSQL
 
         public string GetCorrectQuery()
         {
-            return CorrectQuery;
+            return DefaultQueries["correct"];
+        }
+
+        public string GetCorrectQuery(string providerName)
+        {
+            switch (providerName)
+            {
+                case "Microsoft.Data.SqlClient":
+                    if (SqlServerQueries.Count() == 0)
+                    {
+                        return DefaultQueries["correct"];
+                    }
+                    else
+                    {
+                        return SqlServerQueries["correct"];
+                    }
+                case "Oracle.ManagedDataAccess.Client":
+                    if (OracleQueries.Count() == 0)
+                    {
+                        return DefaultQueries["correct"];
+                    }
+                    else
+                    {
+                        return OracleQueries["correct"];
+                    }
+                case "MySql":
+                    if (MySqlQueries.Count() == 0)
+                    {
+                        return DefaultQueries["correct"];
+                    }
+                    else
+                    {
+                        return MySqlQueries["correct"];
+                    }
+                case "Npgsql":
+                    if (PostgreSqlQueries.Count() == 0)
+                    {
+                        return DefaultQueries["correct"];
+                    }
+                    else
+                    {
+                        return PostgreSqlQueries["correct"];
+                    }
+            }
+
+            return DefaultQueries["correct"];
         }
 
         public string GetRedundantQuery()
         {
-            return RedundantQuery;
+            return DefaultQueries["redundant"];
+        }
+
+        public string GetRedundantQuery(string providerName)
+        {
+            switch (providerName)
+            {
+                case "Microsoft.Data.SqlClient":
+                    if (SqlServerQueries.Count() == 0)
+                    {
+                        return DefaultQueries["redundant"];
+                    }
+                    else
+                    {
+                        return SqlServerQueries["redundant"];
+                    }
+                case "Oracle.ManagedDataAccess.Client":
+                    if (OracleQueries.Count() == 0)
+                    {
+                        return DefaultQueries["redundant"];
+                    }
+                    else
+                    {
+                        return OracleQueries["redundant"];
+                    }
+                case "MySql":
+                    if (MySqlQueries.Count() == 0)
+                    {
+                        return DefaultQueries["redundant"];
+                    }
+                    else
+                    {
+                        return MySqlQueries["redundant"];
+                    }
+                case "Npgsql":
+                    if (PostgreSqlQueries.Count() == 0)
+                    {
+                        return DefaultQueries["redundant"];
+                    }
+                    else
+                    {
+                        return PostgreSqlQueries["redundant"];
+                    }
+            }
+
+            return DefaultQueries["redundant"];
         }
 
         public void SetSqlServerPlan(string key, List<string> plan)
@@ -68,20 +190,20 @@ namespace RedundancyBenchmarkSQL
         {
             Console.WriteLine("Category: " + Category);
 
-            if (Source != null)
+            if (Source != "")
             {
                 Console.WriteLine("Source: " + Source);
             }
-            if (Reference != null)
+            if (Reference != "")
             {
                 Console.WriteLine("Reference: " + Reference);
             }
 
             Console.WriteLine("Description: " + Description);
 
-            Console.WriteLine("Correct query:\n" + CorrectQuery);
+            Console.WriteLine("Correct query:\n" + DefaultQueries["correct"]);
 
-            Console.WriteLine("Query with redundancy:\n" + RedundantQuery);
+            Console.WriteLine("Query with redundancy:\n" + DefaultQueries["redundant"]);
 
             Console.WriteLine("Results:");
 
