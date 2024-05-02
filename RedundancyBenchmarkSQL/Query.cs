@@ -27,6 +27,12 @@ namespace RedundancyBenchmarkSQL
         Dictionary<string, List<string>> OraclePlan = new Dictionary<string, List<string>>();
         Dictionary<string, List<string>> PostgreSqlPlan = new Dictionary<string, List<string>>();
         Dictionary<string, List<string>> MySqlPlan = new Dictionary<string, List<string>>();
+
+        public bool SqlServerComparison { get; set; } = false;
+        public bool OracleComparison { get; set; } = false;
+        public bool MySqlComparison { get; set; } = false;
+        public bool PostgreSqlComparison { get; set; } = false;
+
         public Query(string category, string description, string correctQuery, string redundantQuery)
         {
             Category = category;
@@ -201,15 +207,31 @@ namespace RedundancyBenchmarkSQL
 
             Console.WriteLine("Description: " + Description);
 
-            Console.WriteLine("Correct query:\n" + DefaultQueries["correct"]);
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Correct query:");
+            Console.ResetColor();
+            Console.WriteLine(DefaultQueries["correct"]);
 
-            Console.WriteLine("Query with redundancy:\n" + DefaultQueries["redundant"]);
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Query with redundancy:");
+            Console.ResetColor();
+            Console.WriteLine(DefaultQueries["redundant"]);
 
             Console.WriteLine("Results:");
 
             if (SqlServerPlan.Count() > 0)
             {
-                Console.WriteLine("\nSQL Server:");
+                if (SqlServerComparison)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("\nSQL Server (same plans):");
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("\nSQL Server (different plans):");
+                }
+                Console.ResetColor();
                 Console.WriteLine("   Correct Query:");
                 foreach (string operation in SqlServerPlan["correct"])
                 {
@@ -225,23 +247,43 @@ namespace RedundancyBenchmarkSQL
 
             if (OraclePlan.Count() > 0)
             {
-                Console.WriteLine("\nOracle:");
+                if (OracleComparison)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("\nOracle (same plans):");
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("\nOracle (different plans):");
+                }
+                Console.ResetColor();
                 Console.WriteLine("   Correct Query:");
                 foreach (string operation in OraclePlan["correct"])
                 {
-                    Console.WriteLine("   - " + operation);
+                    Console.WriteLine("   " + operation);
                 }
 
                 Console.WriteLine("\n   Query with redundancy:");
                 foreach (string operation in OraclePlan["redundant"])
                 {
-                    Console.WriteLine("   - " + operation);
+                    Console.WriteLine("   " + operation);
                 }
             }
 
             if (MySqlPlan.Count() > 0)
             {
-                Console.WriteLine("\nMy SQL:");
+                if (MySqlComparison)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("\nMy SQL (same plans):");
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("\nMy SQL (different plans):");
+                }
+                Console.ResetColor();
                 Console.WriteLine("   Correct Query:");
                 foreach (string operation in MySqlPlan["correct"])
                 {
@@ -257,7 +299,17 @@ namespace RedundancyBenchmarkSQL
 
             if (PostgreSqlPlan.Count() > 0)
             {
-                Console.WriteLine("\nPostgre SQL:");
+                if (PostgreSqlComparison)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("\nPostgre SQL (same plans):");
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("\nPostgre SQL (different plans):");
+                }
+                Console.ResetColor();
                 Console.WriteLine("   Correct Query:");
                 foreach (string operation in PostgreSqlPlan["correct"])
                 {

@@ -17,7 +17,7 @@ namespace SQLRedundancyBenchmark
         {
             RegisterDbProviders();
 
-            string filePath = "../../../Resources/queries.sql";
+            string filePath = "../../../Resources/queries_similar.sql";
 
             // Example connection strings for different databases
             string sqlServerConnectionString = "Server=dbsys.cs.vsb.cz\\STUDENT;Database=myDataBase;User Id=myUsername;Password=myPassword;Encrypt=True;TrustServerCertificate=True;";
@@ -29,6 +29,7 @@ namespace SQLRedundancyBenchmark
             
             benchmark.SetDatabaseSystem("Microsoft.Data.SqlClient", sqlServerConnectionString);
             benchmark.RunBenchmark();
+
             
             benchmark.SetDatabaseSystem("MySql", mySqlConnectionString);
             benchmark.RunBenchmark();
@@ -39,26 +40,90 @@ namespace SQLRedundancyBenchmark
             
             benchmark.SetDatabaseSystem("Oracle.ManagedDataAccess.Client", oracleConnectionString);
             benchmark.RunBenchmark();
-            
+
 
             // Print Results
-            benchmark.PrintBenchmark();
-            benchmark.PrintQueries();
+            //benchmark.PrintBenchmark();
+            //benchmark.PrintQueries();
+            //benchmark.PrintBenchmark();
 
-            /*
+            // Capture the original standard output stream
+            TextWriter originalOutput = Console.Out;
+
             // Save results to .txt file
-            using (StreamWriter writer = new StreamWriter("../../Output/test.txt"))
+            using (StreamWriter writer = new StreamWriter("../../../Output/benchmark_without_indexes.txt"))
             {
                 Console.SetOut(writer);
 
                 benchmark.PrintBenchmark();
                 benchmark.PrintQueries();
-            }
-            */
 
-            // Wait for user input before closing the console window
-            Console.WriteLine("Press Enter to exit...");
-            Console.ReadLine();
+                writer.Flush();
+            }
+
+            // Restore the original standard output stream
+            Console.SetOut(originalOutput);
+
+            Console.WriteLine("File Output/benchmark_without_indexes.txt created.");
+
+            benchmark.SetDatabaseSystem("Microsoft.Data.SqlClient", sqlServerConnectionString);
+            benchmark.RunScript("../../../Resources/create_indexes_sqlserver.sql");
+            benchmark.RunBenchmark();
+            benchmark.RunScript("../../../Resources/delete_indexes_sqlserver.sql");
+
+            
+            benchmark.SetDatabaseSystem("MySql", mySqlConnectionString);
+            benchmark.RunScript("../../../Resources/create_indexes_mysql.sql");
+            benchmark.RunBenchmark();
+            benchmark.RunScript("../../../Resources/delete_indexes_mysql.sql");
+
+
+            benchmark.SetDatabaseSystem("Npgsql", postgreConnectionString);
+            benchmark.RunScript("../../../Resources/create_indexes_postgresql.sql");
+            benchmark.RunBenchmark();
+            benchmark.RunScript("../../../Resources/delete_indexes_postgresql.sql");
+            
+            /*
+            benchmark.SetDatabaseSystem("Oracle.ManagedDataAccess.Client", oracleConnectionString);
+            benchmark.RunScript("../../../Resources/create_indexes_oracle.sql");
+            benchmark.RunBenchmark();
+            benchmark.RunScript("../../../Resources/delete_indexes_oracle.sql");
+            */
+            
+            // Save results to .txt file
+            using (StreamWriter writer = new StreamWriter("../../../Output/benchmark_with_indexes.txt"))
+            {
+                Console.SetOut(writer);
+
+                benchmark.PrintBenchmark();
+                benchmark.PrintQueries();
+
+                writer.Flush();
+            }
+
+            // Restore the original standard output stream
+            Console.SetOut(originalOutput);
+
+            Console.WriteLine("File Output/benchmark_with_indexes.txt created.");
+            /*
+            // Test create / delete indexes
+            benchmark.SetDatabaseSystem("Microsoft.Data.SqlClient", sqlServerConnectionString);
+            benchmark.RunScript("../../../Resources/create_indexes_sqlserver.sql");
+            benchmark.RunScript("../../../Resources/delete_indexes_sqlserver.sql");
+
+            benchmark.SetDatabaseSystem("MySql", mySqlConnectionString);
+            benchmark.RunScript("../../../Resources/create_indexes_mysql.sql");
+            benchmark.RunScript("../../../Resources/delete_indexes_mysql.sql");
+
+
+            benchmark.SetDatabaseSystem("Npgsql", postgreConnectionString);
+            benchmark.RunScript("../../../Resources/create_indexes_postgresql.sql");
+            benchmark.RunScript("../../../Resources/delete_indexes_postgresql.sql");
+            
+            benchmark.SetDatabaseSystem("Oracle.ManagedDataAccess.Client", oracleConnectionString);
+            benchmark.RunScript("../../../Resources/create_indexes_oracle.sql");
+            benchmark.RunScript("../../../Resources/delete_indexes_oracle.sql");
+            */
         }
 
         private static void RegisterDbProviders()

@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Azure;
+using Microsoft.Data.SqlClient;
 using MySql.Data.MySqlClient;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
@@ -18,6 +21,7 @@ namespace RedundancyBenchmarkSQL
         private DbProviderFactory factory;
         private string connectionString;
         string providerName;
+
         int SqlServerPoints = -1;
         int OraclePoints = -1;
         int MySqlPoints = -1;
@@ -66,29 +70,43 @@ namespace RedundancyBenchmarkSQL
                         queries.queryList[i].SetSqlServerPlan("correct", correctPlan);
                         queries.queryList[i].SetSqlServerPlan("redundant", redundantPlan);
                         if (correctPlan.OrderBy(x => x).SequenceEqual(redundantPlan.OrderBy(x => x)))
+                        {
                             SqlServerPoints++;
+                            queries.queryList[i].SqlServerComparison = true;
+                        }
                         break;
                     case "Oracle.ManagedDataAccess.Client":
                         queries.queryList[i].SetOraclePlan("correct", correctPlan);
                         queries.queryList[i].SetOraclePlan("redundant", redundantPlan);
                         if (correctPlan.OrderBy(x => x).SequenceEqual(redundantPlan.OrderBy(x => x)))
+                        {
                             OraclePoints++;
+                            queries.queryList[i].OracleComparison = true;
+                        }
                         break;
                     case "MySql":
                         queries.queryList[i].SetMySqlPlan("correct", correctPlan);
                         queries.queryList[i].SetMySqlPlan("redundant", redundantPlan);
                         if (correctPlan.OrderBy(x => x).SequenceEqual(redundantPlan.OrderBy(x => x)))
+                        {
                             MySqlPoints++;
+                            queries.queryList[i].MySqlComparison = true;
+                        }
                         break;
                     case "Npgsql":
                         queries.queryList[i].SetPostgreSqlPlan("correct", correctPlan);
                         queries.queryList[i].SetPostgreSqlPlan("redundant", redundantPlan);
                         if (correctPlan.OrderBy(x => x).SequenceEqual(redundantPlan.OrderBy(x => x)))
+                        {
                             PostgreSqlPoints++;
+                            queries.queryList[i].PostgreSqlComparison = true;
+                        }
                         break;
 
                 }
             }
+
+            Console.WriteLine(providerName + " benchamark finished.");
         }
 
         public void PrintBenchmark()
@@ -186,7 +204,7 @@ namespace RedundancyBenchmarkSQL
         
         private List<string> GetMySqlExecutionPlan(string query)
         {
-            List<string> operations = new List<string>();
+            List<string> plan = new List<string>();
 
             using (MySqlConnection connection = new MySqlConnection(connectionString))
             {
@@ -199,13 +217,22 @@ namespace RedundancyBenchmarkSQL
                 {
                     while (reader.Read())
                     {
-                        string operation = reader["type"] != DBNull.Value ? reader["type"].ToString() : "Unknown";
-                        operations.Add(operation);
+                        string selectType = reader["select_type"] as string ?? "Unknown";
+                        string table = reader["table"] as string ?? "Unknown";
+                        string type = reader["type"] as string ?? "Unknown";
+                        string key = reader["key"] as string ?? "None";
+                        string refColumn = reader["ref"] as string ?? "None";
+                        string rows = reader["rows"]?.ToString() ?? "Unknown"; // Safe conversion to string
+                        string filtered = reader["filtered"]?.ToString() ?? "Unknown"; // Safe conversion to string
+                        string extra = reader["Extra"] as string ?? "None";
+
+                        string detail = $"{selectType} on {table} ({type}), key: {key} comparing to {refColumn}, rows: {rows} (filtered {filtered}%), {extra}";
+                        plan.Add(detail);
                     }
                 }
             }
 
-            return operations;
+            return plan;
         }
 
         
@@ -280,6 +307,152 @@ namespace RedundancyBenchmarkSQL
             }
 
             return planLines;
+        }
+
+        public void RunScript(string script)
+        {
+            switch (providerName)
+            {
+                case "Microsoft.Data.SqlClient":
+                    SqlServerRunScript(script); break;
+                case "Oracle.ManagedDataAccess.Client":
+                    OracleRunScript(script); break;
+                case "MySql":
+                    MySqlRunScript(script); break;
+                case "Npgsql":
+                    PostgreRunScript(script); break;
+            }
+
+            Console.WriteLine(script + " script finished.");
+        }
+        private void SqlServerRunScript(string scriptPath)
+        {
+            if (!File.Exists(scriptPath))
+            {
+                throw new FileNotFoundException("File not found", scriptPath);
+            }
+
+            using (var connection = new SqlConnection(connectionString)) // Ensure that `SqlConnection` is properly instantiated.
+            {
+                connection.Open();
+                var command = connection.CreateCommand();
+                SqlTransaction transaction = connection.BeginTransaction();
+                command.Transaction = transaction;
+
+                try
+                {
+                    string scriptContent = File.ReadAllText(scriptPath);
+                    command.CommandText = scriptContent;
+                    command.ExecuteNonQuery();
+                    transaction.Commit();
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    // Log the error and rethrow or handle it as needed
+                    throw new Exception("An error occurred while executing the script.", ex);
+                }
+            }
+        }
+
+        private void PostgreRunScript(string scriptPath)
+        {
+            if (!File.Exists(scriptPath))
+            {
+                throw new FileNotFoundException("File not found", scriptPath);
+            }
+
+            using (var connection = new NpgsqlConnection(connectionString))
+            {
+                connection.Open();
+                using (var transaction = connection.BeginTransaction())
+                {
+                    using (var command = new NpgsqlCommand())
+                    {
+                        command.Connection = connection;
+                        command.Transaction = transaction;
+
+                        try
+                        {
+                            string scriptContent = File.ReadAllText(scriptPath);
+                            command.CommandText = scriptContent;
+                            command.ExecuteNonQuery();
+                            transaction.Commit();
+                        }
+                        catch (Exception ex)
+                        {
+                            transaction.Rollback();
+                            throw new Exception("An error occurred while executing the script.", ex);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void MySqlRunScript(string scriptPath)
+        {
+            if (!File.Exists(scriptPath))
+            {
+                throw new FileNotFoundException("File not found", scriptPath);
+            }
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+                var command = new MySqlCommand
+                {
+                    Connection = connection
+                };
+                var transaction = connection.BeginTransaction();
+                command.Transaction = transaction;
+
+                try
+                {
+                    string scriptContent = File.ReadAllText(scriptPath);
+                    command.CommandText = scriptContent;
+                    command.ExecuteNonQuery();
+                    transaction.Commit();
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    throw new Exception("An error occurred while executing the script.", ex);
+                }
+            }
+        }
+
+
+        private void OracleRunScript(string scriptPath)
+        {
+            if (!File.Exists(scriptPath))
+            {
+                throw new FileNotFoundException("File not found", scriptPath);
+            }
+
+            using (var connection = new OracleConnection(connectionString))
+            {
+                connection.Open();
+                var command = new OracleCommand
+                {
+                    Connection = connection
+                };
+                var transaction = connection.BeginTransaction();
+                command.Transaction = transaction;
+
+                try
+                {
+                    string scriptContent = File.ReadAllText(scriptPath);
+                    command.CommandText = scriptContent;
+                    command.ExecuteNonQuery();
+                    transaction.Commit();
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    Console.WriteLine("Failed to execute script: " + ex.Message);
+                    throw; // This will allow for further upstack handling of the exception if necessary
+                }
+            }
         }
     }
 }

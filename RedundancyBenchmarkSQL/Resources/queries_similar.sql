@@ -22,12 +22,12 @@ WHERE Country = 'Czech Republic'
 -- Reference: 2.2. Error 2
 -- Description: Using distinct on already unique values.
 -- Version: error
-SELECT DISTINCT(MediaTypeId)
-FROM MediaType
+SELECT DISTINCT(AlbumId)
+FROM Album
 
 -- Version: correct
-SELECT MediaTypeId
-FROM MediaType
+SELECT AlbumId
+FROM Album
 -- end
 
 ----------------------------------------
@@ -52,13 +52,13 @@ WHERE Country = 'USA'
 -- Description: Duplicated (redundant) conditions with AND operator.
 -- Version: error
 SELECT *
-FROM Invoice
-WHERE BillingCity = 'Oslo' AND BillingCity = 'Oslo'
+FROM Customer
+WHERE Country = 'USA' AND Country = 'USA'
 
 -- Version: correct
 SELECT *
-FROM Invoice
-WHERE BillingCity = 'Oslo'
+FROM Customer
+WHERE Country = 'USA'
 -- end
 
 -- Source: Brass and Goldberg
@@ -96,13 +96,13 @@ WHERE 1 = 0
 -- Version: error
 SELECT *
 FROM Track
-WHERE Milliseconds > 300000 AND
-      Milliseconds > 200000
+WHERE UnitPrice > 0.5 AND
+      UnitPrice > 1
 
 -- Version: correct
 SELECT *
 FROM Track
-WHERE Milliseconds > 300000
+WHERE UnitPrice > 1
 -- end
 
 -- Description: Duplicate values in the IN list.
@@ -160,16 +160,16 @@ WHERE Country = 'USA'
 -- Description: Unnecessary IN/EXISTS condition that could be replaced by simple comparison.
 -- Version: error
 SELECT *
-FROM Invoice
-WHERE BillingCountry NOT IN
-(SELECT BillingCountry
- FROM Invoice
- WHERE BillingCountry = 'Germany')
+FROM Customer
+WHERE Country NOT IN
+(SELECT Country
+ FROM Customer
+ WHERE Country = 'USA')
 
 -- Version: correct
 SELECT *
-FROM Invoice
-WHERE BillingCountry != 'Germany'
+FROM Customer
+WHERE Country != 'USA'
 -- end
 
 -- Source: Brass and Goldberg
@@ -363,11 +363,11 @@ FROM Track
 -- Reference: 2.5 Error 16
 -- Description: Unnecessary DISTINCT in MIN / MAX aggregations.
 -- Version: error
-SELECT MAX(DISTINCT Milliseconds)
+SELECT MAX(DISTINCT UnitPrice)
 FROM Track
 
 -- Version: correct
-SELECT MAX(Milliseconds)
+SELECT MAX(UnitPrice)
 FROM Track
 -- end
 
@@ -391,22 +391,22 @@ FROM Artist
 -- Reference: 2.6 Error 18
 -- Description: Unnecessary GROUP BY in EXISTS subquery.
 -- Version: error
-SELECT * 
-FROM Artist
+SELECT *
+FROM Album
 WHERE EXISTS (
-    SELECT 1 
-    FROM Album
-    WHERE ArtistId = Artist.ArtistId AND Artist.Name = 'AC/DC'
-    GROUP BY ArtistId
+    SELECT 1
+    FROM Track
+    WHERE TrackId = Track.TrackId AND Album.Title = 'Outbreak'
+    GROUP BY TrackId
 )
 
 -- Version: correct
-SELECT * 
-FROM Artist
+SELECT *
+FROM Album
 WHERE EXISTS (
-    SELECT 1 
-    FROM Album
-    WHERE ArtistId = Artist.ArtistId AND Artist.Name = 'AC/DC'
+    SELECT 1
+    FROM Track
+    WHERE TrackId = Track.TrackId AND Album.Title = 'Outbreak'
 )
 -- end
 
