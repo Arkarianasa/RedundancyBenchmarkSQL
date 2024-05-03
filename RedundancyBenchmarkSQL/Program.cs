@@ -43,7 +43,8 @@ namespace SQLRedundancyBenchmark
 
 
             // Print Results
-            //benchmark.PrintBenchmark();
+            Console.WriteLine();
+            benchmark.PrintBenchmark();
             //benchmark.PrintQueries();
             //benchmark.PrintBenchmark();
 
@@ -64,7 +65,9 @@ namespace SQLRedundancyBenchmark
             // Restore the original standard output stream
             Console.SetOut(originalOutput);
 
-            Console.WriteLine("File Output/benchmark_without_indexes.txt created.");
+            Console.WriteLine("\nFile Output/benchmark_without_indexes.txt created.\n");
+
+            benchmark.ResetBenchmark();
 
             benchmark.SetDatabaseSystem("Microsoft.Data.SqlClient", sqlServerConnectionString);
             benchmark.RunScript("../../../Resources/create_indexes_sqlserver.sql");
@@ -82,14 +85,20 @@ namespace SQLRedundancyBenchmark
             benchmark.RunScript("../../../Resources/create_indexes_postgresql.sql");
             benchmark.RunBenchmark();
             benchmark.RunScript("../../../Resources/delete_indexes_postgresql.sql");
-            
+
             /*
             benchmark.SetDatabaseSystem("Oracle.ManagedDataAccess.Client", oracleConnectionString);
             benchmark.RunScript("../../../Resources/create_indexes_oracle.sql");
             benchmark.RunBenchmark();
             benchmark.RunScript("../../../Resources/delete_indexes_oracle.sql");
             */
-            
+
+            // Print Results
+            Console.WriteLine();
+            benchmark.PrintBenchmark();
+            //benchmark.PrintQueries();
+            //benchmark.PrintBenchmark();
+
             // Save results to .txt file
             using (StreamWriter writer = new StreamWriter("../../../Output/benchmark_with_indexes.txt"))
             {
@@ -103,9 +112,9 @@ namespace SQLRedundancyBenchmark
 
             // Restore the original standard output stream
             Console.SetOut(originalOutput);
-
-            Console.WriteLine("File Output/benchmark_with_indexes.txt created.");
+            Console.WriteLine("\nFile Output/benchmark_with_indexes.txt created.\n");
             /*
+             * 
             // Test create / delete indexes
             benchmark.SetDatabaseSystem("Microsoft.Data.SqlClient", sqlServerConnectionString);
             benchmark.RunScript("../../../Resources/create_indexes_sqlserver.sql");
@@ -132,7 +141,7 @@ namespace SQLRedundancyBenchmark
             DbProviderFactories.RegisterFactory("Microsoft.Data.SqlClient", SqlClientFactory.Instance);
             DbProviderFactories.RegisterFactory("Npgsql", NpgsqlFactory.Instance);
             DbProviderFactories.RegisterFactory("Oracle.ManagedDataAccess.Client", OracleClientFactory.Instance);
-            Console.WriteLine("Database providers registered successfully.");
+            Console.WriteLine("Database providers registered successfully.\n");
         }
     }
 }

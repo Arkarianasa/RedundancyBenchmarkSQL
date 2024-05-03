@@ -1,10 +1,9 @@
 Benchmark Results:
-Microsoft SQL Server: 10 / 25
-Oracle: 16 / 25
-My SQL: 13 / 25
-Postgre SQL: 6 / 25
+Microsoft SQL Server: 10 / 27
+My SQL: 13 / 27
+Postgre SQL: 6 / 27
 ----------------------------------------------------------------------------------------------------
-Redundancy Benchmark for 25 queries:
+Redundancy Benchmark for 27 queries:
 ----------------------------------------------------------------------------------------------------
 Category: Attributes
 Source: Brass and Goldberg
@@ -29,23 +28,6 @@ SQL Server (different plans):
 
    Query with redundancy:
    -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'Czech Republic'))
-
-Oracle (same plans):
-   Correct Query:
-   --------------------------------------
-   | Id  | Operation         | Name     |
-   --------------------------------------
-   |   0 | SELECT STATEMENT  |          |
-   |   1 |  TABLE ACCESS FULL| CUSTOMER |
-   --------------------------------------
-
-   Query with redundancy:
-   --------------------------------------
-   | Id  | Operation         | Name     |
-   --------------------------------------
-   |   0 | SELECT STATEMENT  |          |
-   |   1 |  TABLE ACCESS FULL| CUSTOMER |
-   --------------------------------------
 
 My SQL (same plans):
    Correct Query:
@@ -83,24 +65,6 @@ SQL Server (same plans):
 
    Query with redundancy:
    -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IFK_AlbumArtistId]))
-
-Oracle (different plans):
-   Correct Query:
-   -----------------------------------
-   | Id  | Operation         | Name  |
-   -----------------------------------
-   |   0 | SELECT STATEMENT  |       |
-   |   1 |  TABLE ACCESS FULL| ALBUM |
-   -----------------------------------
-
-   Query with redundancy:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  HASH UNIQUE       |       |
-   |   2 |   TABLE ACCESS FULL| ALBUM |
-   ------------------------------------
 
 My SQL (same plans):
    Correct Query:
@@ -141,23 +105,6 @@ SQL Server (same plans):
    Query with redundancy:
    -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA'))
 
-Oracle (same plans):
-   Correct Query:
-   --------------------------------------
-   | Id  | Operation         | Name     |
-   --------------------------------------
-   |   0 | SELECT STATEMENT  |          |
-   |   1 |  TABLE ACCESS FULL| CUSTOMER |
-   --------------------------------------
-
-   Query with redundancy:
-   --------------------------------------
-   | Id  | Operation         | Name     |
-   --------------------------------------
-   |   0 | SELECT STATEMENT  |          |
-   |   1 |  TABLE ACCESS FULL| CUSTOMER |
-   --------------------------------------
-
 My SQL (same plans):
    Correct Query:
    - SIMPLE on Customer (ref), key: IDX_Customer_Country comparing to const, rows: 13 (filtered 100%), None
@@ -197,23 +144,6 @@ SQL Server (different plans):
    Query with redundancy:
    -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA' AND [LAS0084].[dbo].[Customer].[Country]=N'USA'))
 
-Oracle (same plans):
-   Correct Query:
-   --------------------------------------
-   | Id  | Operation         | Name     |
-   --------------------------------------
-   |   0 | SELECT STATEMENT  |          |
-   |   1 |  TABLE ACCESS FULL| CUSTOMER |
-   --------------------------------------
-
-   Query with redundancy:
-   --------------------------------------
-   | Id  | Operation         | Name     |
-   --------------------------------------
-   |   0 | SELECT STATEMENT  |          |
-   |   1 |  TABLE ACCESS FULL| CUSTOMER |
-   --------------------------------------
-
 My SQL (same plans):
    Correct Query:
    - SIMPLE on Customer (ref), key: IDX_Customer_Country comparing to const, rows: 13 (filtered 100%), None
@@ -252,25 +182,6 @@ SQL Server (same plans):
 
    Query with redundancy:
    -   |--Constant Scan
-
-Oracle (same plans):
-   Correct Query:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  FILTER            |       |
-   |   2 |   TABLE ACCESS FULL| ALBUM |
-   ------------------------------------
-
-   Query with redundancy:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  FILTER            |       |
-   |   2 |   TABLE ACCESS FULL| ALBUM |
-   ------------------------------------
 
 My SQL (same plans):
    Correct Query:
@@ -314,25 +225,6 @@ SQL Server (same plans):
    Query with redundancy:
    -   |--Constant Scan
 
-Oracle (same plans):
-   Correct Query:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  FILTER            |       |
-   |   2 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
-
-   Query with redundancy:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  FILTER            |       |
-   |   2 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
-
 My SQL (different plans):
    Correct Query:
    - SIMPLE on Unknown (Unknown), key: None comparing to None, rows:  (filtered %), Impossible WHERE
@@ -373,23 +265,6 @@ SQL Server (different plans):
    Query with redundancy:
    -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[UnitPrice]>(0.50) AND [LAS0084].[dbo].[Track].[UnitPrice]>(1.00)))
 
-Oracle (same plans):
-   Correct Query:
-   -----------------------------------
-   | Id  | Operation         | Name  |
-   -----------------------------------
-   |   0 | SELECT STATEMENT  |       |
-   |   1 |  TABLE ACCESS FULL| TRACK |
-   -----------------------------------
-
-   Query with redundancy:
-   -----------------------------------
-   | Id  | Operation         | Name  |
-   -----------------------------------
-   |   0 | SELECT STATEMENT  |       |
-   |   1 |  TABLE ACCESS FULL| TRACK |
-   -----------------------------------
-
 My SQL (same plans):
    Correct Query:
    - SIMPLE on Track (range), key: IDX_Track_UnitPrice comparing to None, rows: 213 (filtered 100%), Using index condition
@@ -426,23 +301,6 @@ SQL Server (same plans):
 
    Query with redundancy:
    -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[GenreId]=(1) OR [LAS0084].[dbo].[Track].[GenreId]=(2) OR [LAS0084].[dbo].[Track].[GenreId]=(3)))
-
-Oracle (same plans):
-   Correct Query:
-   -----------------------------------
-   | Id  | Operation         | Name  |
-   -----------------------------------
-   |   0 | SELECT STATEMENT  |       |
-   |   1 |  TABLE ACCESS FULL| TRACK |
-   -----------------------------------
-
-   Query with redundancy:
-   -----------------------------------
-   | Id  | Operation         | Name  |
-   -----------------------------------
-   |   0 | SELECT STATEMENT  |       |
-   |   1 |  TABLE ACCESS FULL| TRACK |
-   -----------------------------------
 
 My SQL (same plans):
    Correct Query:
@@ -482,23 +340,6 @@ SQL Server (different plans):
    -        |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[InvoiceLine].[TrackId]))
    -        |    |--Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[IFK_InvoiceLineTrackId]), ORDERED FORWARD)
    -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine]))
-
-Oracle (same plans):
-   Correct Query:
-   -----------------------------------------
-   | Id  | Operation         | Name        |
-   -----------------------------------------
-   |   0 | SELECT STATEMENT  |             |
-   |   1 |  TABLE ACCESS FULL| INVOICELINE |
-   -----------------------------------------
-
-   Query with redundancy:
-   -----------------------------------------
-   | Id  | Operation         | Name        |
-   -----------------------------------------
-   |   0 | SELECT STATEMENT  |             |
-   |   1 |  TABLE ACCESS FULL| INVOICELINE |
-   -----------------------------------------
 
 My SQL (different plans):
    Correct Query:
@@ -542,23 +383,6 @@ SQL Server (different plans):
    Query with redundancy:
    -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_Name]),  WHERE:([LAS0084].[dbo].[Track].[Name] like N'%'))
 
-Oracle (same plans):
-   Correct Query:
-   -----------------------------------
-   | Id  | Operation         | Name  |
-   -----------------------------------
-   |   0 | SELECT STATEMENT  |       |
-   |   1 |  TABLE ACCESS FULL| TRACK |
-   -----------------------------------
-
-   Query with redundancy:
-   -----------------------------------
-   | Id  | Operation         | Name  |
-   -----------------------------------
-   |   0 | SELECT STATEMENT  |       |
-   |   1 |  TABLE ACCESS FULL| TRACK |
-   -----------------------------------
-
 My SQL (different plans):
    Correct Query:
    - SIMPLE on Track (index), key: IDX_Track_Name comparing to None, rows: 3483 (filtered 100%), Using index
@@ -596,23 +420,6 @@ SQL Server (different plans):
 
    Query with redundancy:
    -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country] like N'USA'))
-
-Oracle (same plans):
-   Correct Query:
-   --------------------------------------
-   | Id  | Operation         | Name     |
-   --------------------------------------
-   |   0 | SELECT STATEMENT  |          |
-   |   1 |  TABLE ACCESS FULL| CUSTOMER |
-   --------------------------------------
-
-   Query with redundancy:
-   --------------------------------------
-   | Id  | Operation         | Name     |
-   --------------------------------------
-   |   0 | SELECT STATEMENT  |          |
-   |   1 |  TABLE ACCESS FULL| CUSTOMER |
-   --------------------------------------
 
 My SQL (different plans):
    Correct Query:
@@ -657,25 +464,6 @@ SQL Server (different plans):
    -   |--Nested Loops(Left Anti Semi Join, WHERE:([LAS0084].[dbo].[Customer].[Country] IS NULL OR [LAS0084].[dbo].[Customer].[Country]=[LAS0084].[dbo].[Customer].[Country]))
    -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]))
    -        |--Index Seek(OBJECT:([LAS0084].[dbo].[Customer].[IDX_Customer_Country]), SEEK:([LAS0084].[dbo].[Customer].[Country]=N'USA') ORDERED FORWARD)
-
-Oracle (different plans):
-   Correct Query:
-   --------------------------------------
-   | Id  | Operation         | Name     |
-   --------------------------------------
-   |   0 | SELECT STATEMENT  |          |
-   |   1 |  TABLE ACCESS FULL| CUSTOMER |
-   --------------------------------------
-
-   Query with redundancy:
-   ---------------------------------------
-   | Id  | Operation          | Name     |
-   ---------------------------------------
-   |   0 | SELECT STATEMENT   |          |
-   |   1 |  HASH JOIN ANTI SNA|          |
-   |   2 |   TABLE ACCESS FULL| CUSTOMER |
-   |   3 |   TABLE ACCESS FULL| CUSTOMER |
-   ---------------------------------------
 
 My SQL (different plans):
    Correct Query:
@@ -733,27 +521,6 @@ SQL Server (same plans):
    -        |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[AlbumId]))
    -        |    |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackAlbumId]), ORDERED FORWARD)
    -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), ORDERED FORWARD)
-
-Oracle (same plans):
-   Correct Query:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  HASH JOIN SEMI    |       |
-   |   2 |   TABLE ACCESS FULL| ALBUM |
-   |   3 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
-
-   Query with redundancy:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  HASH JOIN SEMI    |       |
-   |   2 |   TABLE ACCESS FULL| ALBUM |
-   |   3 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
 
 My SQL (same plans):
    Correct Query:
@@ -823,34 +590,6 @@ SQL Server (different plans):
    -             |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD)
    -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IDX_Album_Title]))
 
-Oracle (different plans):
-   Correct Query:
-   ----------------------------------------
-   | Id  | Operation            | Name    |
-   ----------------------------------------
-   |   0 | SELECT STATEMENT     |         |
-   |   1 |  HASH JOIN RIGHT SEMI|         |
-   |   2 |   VIEW               | VW_SQ_1 |
-   |   3 |    HASH JOIN         |         |
-   |   4 |     TABLE ACCESS FULL| GENRE   |
-   |   5 |     TABLE ACCESS FULL| TRACK   |
-   |   6 |   TABLE ACCESS FULL  | ALBUM   |
-   ----------------------------------------
-
-   Query with redundancy:
-   ----------------------------------------
-   | Id  | Operation              | Name  |
-   ----------------------------------------
-   |   0 | SELECT STATEMENT       |       |
-   |   1 |  HASH UNIQUE           |       |
-   |   2 |   HASH JOIN SEMI       |       |
-   |   3 |    MERGE JOIN CARTESIAN|       |
-   |   4 |     TABLE ACCESS FULL  | GENRE |
-   |   5 |     BUFFER SORT        |       |
-   |   6 |      TABLE ACCESS FULL | ALBUM |
-   |   7 |    TABLE ACCESS FULL   | TRACK |
-   ----------------------------------------
-
 My SQL (different plans):
    Correct Query:
    - SIMPLE on <subquery2> (ALL), key: None comparing to None, rows:  (filtered 100%), Using where
@@ -909,31 +648,12 @@ WHERE Invoice.Total < 1
 
 Results:
 
-SQL Server (same plans):
+SQL Server (different plans):
    Correct Query:
    -   |--Index Seek(OBJECT:([LAS0084].[dbo].[Invoice].[IDX_Invoice_Total]), SEEK:([LAS0084].[dbo].[Invoice].[Total] < CONVERT_IMPLICIT(numeric(10,2),[@1],0)) ORDERED FORWARD)
 
    Query with redundancy:
    -   |--Index Seek(OBJECT:([LAS0084].[dbo].[Invoice].[IDX_Invoice_Total]), SEEK:([LAS0084].[dbo].[Invoice].[Total] < (1.00)) ORDERED FORWARD)
-
-Oracle (different plans):
-   Correct Query:
-   -------------------------------------
-   | Id  | Operation         | Name    |
-   -------------------------------------
-   |   0 | SELECT STATEMENT  |         |
-   |   1 |  TABLE ACCESS FULL| INVOICE |
-   -------------------------------------
-
-   Query with redundancy:
-   ---------------------------------------
-   | Id  | Operation          | Name     |
-   ---------------------------------------
-   |   0 | SELECT STATEMENT   |          |
-   |   1 |  HASH JOIN         |          |
-   |   2 |   TABLE ACCESS FULL| INVOICE  |
-   |   3 |   TABLE ACCESS FULL| CUSTOMER |
-   ---------------------------------------
 
 My SQL (different plans):
    Correct Query:
@@ -979,25 +699,6 @@ SQL Server (different plans):
    -   |--Nested Loops(Inner Join, OUTER REFERENCES:([g1].[GenreId]))
    -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name] AS [g1]))
    -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre] AS [g2]), SEEK:([g2].[GenreId]=[LAS0084].[dbo].[Genre].[GenreId] as [g1].[GenreId]) ORDERED FORWARD)
-
-Oracle (different plans):
-   Correct Query:
-   -----------------------------------
-   | Id  | Operation         | Name  |
-   -----------------------------------
-   |   0 | SELECT STATEMENT  |       |
-   |   1 |  TABLE ACCESS FULL| GENRE |
-   -----------------------------------
-
-   Query with redundancy:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  HASH JOIN         |       |
-   |   2 |   TABLE ACCESS FULL| GENRE |
-   |   3 |   TABLE ACCESS FULL| GENRE |
-   ------------------------------------
 
 My SQL (different plans):
    Correct Query:
@@ -1070,30 +771,6 @@ SQL Server (different plans):
    -             |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Jazz') ORDERED FORWARD)
    -             |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1015]) ORDERED FORWARD)
    -             |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD)
-
-Oracle (different plans):
-   Correct Query:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  TABLE ACCESS FULL | TRACK |
-   |   2 |   TABLE ACCESS FULL| GENRE |
-   |   3 |   TABLE ACCESS FULL| GENRE |
-   ------------------------------------
-
-   Query with redundancy:
-   --------------------------------------
-   | Id  | Operation            | Name  |
-   --------------------------------------
-   |   0 | SELECT STATEMENT     |       |
-   |   1 |  SORT UNIQUE         |       |
-   |   2 |   UNION-ALL          |       |
-   |   3 |    TABLE ACCESS FULL | TRACK |
-   |   4 |     TABLE ACCESS FULL| GENRE |
-   |   5 |    TABLE ACCESS FULL | TRACK |
-   |   6 |     TABLE ACCESS FULL| GENRE |
-   --------------------------------------
 
 My SQL (different plans):
    Correct Query:
@@ -1202,32 +879,6 @@ SQL Server (different plans):
    -             |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1015]) ORDERED FORWARD)
    -             |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD)
 
-Oracle (different plans):
-   Correct Query:
-   -------------------------------------
-   | Id  | Operation           | Name  |
-   -------------------------------------
-   |   0 | SELECT STATEMENT    |       |
-   |   1 |  UNION-ALL          |       |
-   |   2 |   TABLE ACCESS FULL | TRACK |
-   |   3 |    TABLE ACCESS FULL| GENRE |
-   |   4 |   TABLE ACCESS FULL | TRACK |
-   |   5 |    TABLE ACCESS FULL| GENRE |
-   -------------------------------------
-
-   Query with redundancy:
-   --------------------------------------
-   | Id  | Operation            | Name  |
-   --------------------------------------
-   |   0 | SELECT STATEMENT     |       |
-   |   1 |  SORT UNIQUE         |       |
-   |   2 |   UNION-ALL          |       |
-   |   3 |    TABLE ACCESS FULL | TRACK |
-   |   4 |     TABLE ACCESS FULL| GENRE |
-   |   5 |    TABLE ACCESS FULL | TRACK |
-   |   6 |     TABLE ACCESS FULL| GENRE |
-   --------------------------------------
-
 My SQL (different plans):
    Correct Query:
    - PRIMARY on Track (ref), key: IFK_TrackGenreId comparing to const, rows: 74 (filtered 100%), Using where
@@ -1306,27 +957,6 @@ SQL Server (different plans):
    -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), ORDERED FORWARD)
    -        |--Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[IFK_InvoiceLineTrackId] AS [il]), ORDERED FORWARD)
 
-Oracle (same plans):
-   Correct Query:
-   ------------------------------------------
-   | Id  | Operation          | Name        |
-   ------------------------------------------
-   |   0 | SELECT STATEMENT   |             |
-   |   1 |  HASH JOIN         |             |
-   |   2 |   TABLE ACCESS FULL| INVOICELINE |
-   |   3 |   TABLE ACCESS FULL| TRACK       |
-   ------------------------------------------
-
-   Query with redundancy:
-   ------------------------------------------
-   | Id  | Operation          | Name        |
-   ------------------------------------------
-   |   0 | SELECT STATEMENT   |             |
-   |   1 |  HASH JOIN         |             |
-   |   2 |   TABLE ACCESS FULL| INVOICELINE |
-   |   3 |   TABLE ACCESS FULL| TRACK       |
-   ------------------------------------------
-
 My SQL (different plans):
    Correct Query:
    - SIMPLE on il (index), key: IFK_InvoiceLineTrackId comparing to None, rows: 2240 (filtered 100%), Using index
@@ -1381,27 +1011,6 @@ SQL Server (same plans):
    -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine] AS [il]), SEEK:([il].[InvoiceLineId]=(52)) ORDERED FORWARD)
    -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), SEEK:([t].[TrackId]=[LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId]) ORDERED FORWARD)
 
-Oracle (same plans):
-   Correct Query:
-   ------------------------------------------
-   | Id  | Operation          | Name        |
-   ------------------------------------------
-   |   0 | SELECT STATEMENT   |             |
-   |   1 |  HASH JOIN         |             |
-   |   2 |   TABLE ACCESS FULL| INVOICELINE |
-   |   3 |   TABLE ACCESS FULL| TRACK       |
-   ------------------------------------------
-
-   Query with redundancy:
-   ------------------------------------------
-   | Id  | Operation          | Name        |
-   ------------------------------------------
-   |   0 | SELECT STATEMENT   |             |
-   |   1 |  HASH JOIN         |             |
-   |   2 |   TABLE ACCESS FULL| INVOICELINE |
-   |   3 |   TABLE ACCESS FULL| TRACK       |
-   ------------------------------------------
-
 My SQL (same plans):
    Correct Query:
    - SIMPLE on il (const), key: PRIMARY comparing to const, rows: 1 (filtered 100%), None
@@ -1425,6 +1034,60 @@ Postgre SQL (same plans):
    -         Index Cond: (invoicelineid = 52)
    -   ->  Index Scan using track_pkey on track t  (cost=0.28..8.30 rows=1 width=20)
    -         Index Cond: (trackid = il.trackid)
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: null
+Reference: null
+Description: NEW Unnecessary LEFT JOIN when USING aggregations that could be replaced by simple sub-query.
+Correct query:
+SELECT Invoice.InvoiceId, (
+SELECT COUNT(*)
+FROM Customer
+WHERE Customer.CustomerId = Invoice.CustomerId
+)
+FROM Invoice
+
+Query with redundancy:
+SELECT Invoice.InvoiceId, COUNT(*)
+FROM Invoice
+LEFT JOIN Customer ON Customer.CustomerId = Invoice.CustomerId
+GROUP BY Invoice.InvoiceId
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1006]=CASE WHEN [Expr1004] IS NULL THEN (0) ELSE [Expr1004] END))
+   -        |--Merge Join(Right Outer Join, MERGE:([LAS0084].[dbo].[Customer].[CustomerId])=([LAS0084].[dbo].[Invoice].[CustomerId]), RESIDUAL:([LAS0084].[dbo].[Customer].[CustomerId]=[LAS0084].[dbo].[Invoice].[CustomerId]))
+   -             |--Compute Scalar(DEFINE:([Expr1004]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END))
+   -             |    |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), ORDERED FORWARD)
+   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId]), ORDERED FORWARD)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1004]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END))
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IDX_Invoice_Total]))
+
+My SQL (different plans):
+   Correct Query:
+   - PRIMARY on Invoice (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), Using index
+   - DEPENDENT SUBQUERY on Customer (eq_ref), key: PRIMARY comparing to las0084.Invoice.CustomerId, rows: 1 (filtered 100%), Using index
+
+   Query with redundancy:
+   - SIMPLE on Invoice (index), key: PRIMARY comparing to None, rows: 412 (filtered 100%), None
+   - SIMPLE on Customer (eq_ref), key: PRIMARY comparing to las0084.Invoice.CustomerId, rows: 1 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on invoice  (cost=0.00..1143.12 rows=412 width=12)
+   -   SubPlan 1
+   -     ->  Aggregate  (cost=2.74..2.75 rows=1 width=8)
+   -           ->  Seq Scan on customer  (cost=0.00..2.74 rows=1 width=0)
+   -                 Filter: (customerid = invoice.customerid)
+
+   Query with redundancy:
+   - HashAggregate  (cost=12.18..16.30 rows=412 width=12)
+   -   Group Key: invoice.invoiceid
+   -   ->  Seq Scan on invoice  (cost=0.00..10.12 rows=412 width=4)
 ----------------------------------------------------------------------------------------------------
 Category: Aggregations
 Source: Brass and Goldberg
@@ -1450,25 +1113,6 @@ SQL Server (same plans):
    -   |--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[Expr1003],0)))
    -        |--Stream Aggregate(DEFINE:([Expr1003]=Count(*)))
    -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId]))
-
-Oracle (same plans):
-   Correct Query:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  SORT AGGREGATE    |       |
-   |   2 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
-
-   Query with redundancy:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  SORT AGGREGATE    |       |
-   |   2 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
 
 My SQL (same plans):
    Correct Query:
@@ -1510,26 +1154,7 @@ SQL Server (different plans):
    -   |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[UnitPrice]) DEFINE:([Expr1002]=MAX([LAS0084].[dbo].[Track].[UnitPrice])))
    -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_UnitPrice]), ORDERED FORWARD)
 
-Oracle (different plans):
-   Correct Query:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  HASH UNIQUE       |       |
-   |   2 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
-
-   Query with redundancy:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  HASH GROUP BY     |       |
-   |   2 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
-
-My SQL (same plans):
+My SQL (different plans):
    Correct Query:
    - SIMPLE on Track (range), key: IDX_Track_UnitPrice comparing to None, rows: 3 (filtered 100%), Using index for group-by
 
@@ -1572,25 +1197,6 @@ SQL Server (same plans):
    -        |--Top(TOP EXPRESSION:((1)))
    -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_UnitPrice]), ORDERED BACKWARD)
 
-Oracle (same plans):
-   Correct Query:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  SORT AGGREGATE    |       |
-   |   2 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
-
-   Query with redundancy:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  SORT AGGREGATE    |       |
-   |   2 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
-
 My SQL (same plans):
    Correct Query:
    - SIMPLE on Unknown (Unknown), key: None comparing to None, rows:  (filtered %), Select tables optimized away
@@ -1612,6 +1218,66 @@ Postgre SQL (same plans):
    -     ->  Limit  (cost=0.28..0.33 rows=1 width=5)
    -           ->  Index Only Scan Backward using idx_track_unitprice on track  (cost=0.28..159.11 rows=3503 width=5)
    -                 Index Cond: (unitprice IS NOT NULL)
+----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: null
+Reference: null
+Description: NEW Unnecessary replacing GROUP BY in MIN / MAX aggregations with subquery. !Different order!
+Correct query:
+SELECT CustomerId, SUM(Total)
+FROM Invoice
+GROUP BY CustomerId
+
+Query with redundancy:
+SELECT DISTINCT i1.CustomerId, (
+SELECT SUM(i2.Total)
+FROM Invoice AS i2
+WHERE i1.CustomerId = i2.CustomerId
+)
+FROM Invoice AS i1
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Invoice].[CustomerId]) DEFINE:([Expr1002]=SUM([LAS0084].[dbo].[Invoice].[Total])))
+   -        |--Sort(ORDER BY:([LAS0084].[dbo].[Invoice].[CustomerId] ASC))
+   -             |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice]))
+
+   Query with redundancy:
+   -   |--Sort(DISTINCT ORDER BY:([i1].[CustomerId] ASC, [Expr1004] ASC))
+   -        |--Compute Scalar(DEFINE:([Expr1004]=[Expr1002]))
+   -             |--Merge Join(Right Outer Join, MERGE:([i2].[CustomerId])=([i1].[CustomerId]), RESIDUAL:([LAS0084].[dbo].[Invoice].[CustomerId] as [i1].[CustomerId]=[LAS0084].[dbo].[Invoice].[CustomerId] as [i2].[CustomerId]))
+   -                  |--Stream Aggregate(GROUP BY:([i2].[CustomerId]) DEFINE:([Expr1002]=SUM([LAS0084].[dbo].[Invoice].[Total] as [i2].[Total])))
+   -                  |    |--Sort(ORDER BY:([i2].[CustomerId] ASC))
+   -                  |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice] AS [i2]))
+   -                  |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId] AS [i1]), ORDERED FORWARD)
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Invoice (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), None
+
+   Query with redundancy:
+   - PRIMARY on i1 (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), Using index; Using temporary
+   - DEPENDENT SUBQUERY on i2 (ref), key: IFK_InvoiceCustomerId comparing to las0084.i1.CustomerId, rows: 6 (filtered 100%), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - HashAggregate  (cost=12.18..12.92 rows=59 width=36)
+   -   Group Key: customerid
+   -   ->  Seq Scan on invoice  (cost=0.00..10.12 rows=412 width=10)
+
+   Query with redundancy:
+   - Unique  (cost=4457.50..4460.59 rows=59 width=36)
+   -   ->  Sort  (cost=4457.50..4458.53 rows=412 width=36)
+   -         Sort Key: i1.customerid, ((SubPlan 1))
+   -         ->  Seq Scan on invoice i1  (cost=0.00..4439.61 rows=412 width=36)
+   -               SubPlan 1
+   -                 ->  Aggregate  (cost=10.74..10.75 rows=1 width=32)
+   -                       ->  Bitmap Heap Scan on invoice i2  (cost=4.33..10.72 rows=7 width=6)
+   -                             Recheck Cond: (i1.customerid = customerid)
+   -                             ->  Bitmap Index Scan on invoice_customer_id_idx  (cost=0.00..4.33 rows=7 width=0)
+   -                                   Index Cond: (i1.customerid = customerid)
 ----------------------------------------------------------------------------------------------------
 Category: Grouping
 Source: Brass and Goldberg
@@ -1636,24 +1302,6 @@ SQL Server (different plans):
    Query with redundancy:
    -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END))
    -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Artist].[PK_Artist]))
-
-Oracle (different plans):
-   Correct Query:
-   ------------------------------------
-   | Id  | Operation         | Name   |
-   ------------------------------------
-   |   0 | SELECT STATEMENT  |        |
-   |   1 |  TABLE ACCESS FULL| ARTIST |
-   ------------------------------------
-
-   Query with redundancy:
-   -------------------------------------
-   | Id  | Operation          | Name   |
-   -------------------------------------
-   |   0 | SELECT STATEMENT   |        |
-   |   1 |  HASH GROUP BY     |        |
-   |   2 |   TABLE ACCESS FULL| ARTIST |
-   -------------------------------------
 
 My SQL (same plans):
    Correct Query:
@@ -1706,27 +1354,6 @@ SQL Server (same plans):
    -   |--Nested Loops(Left Semi Join)
    -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), WHERE:([LAS0084].[dbo].[Album].[Title]=N'Outbreak'))
    -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId]),  WHERE:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]))
-
-Oracle (same plans):
-   Correct Query:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  FILTER            |       |
-   |   2 |   TABLE ACCESS FULL| ALBUM |
-   |   3 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
-
-   Query with redundancy:
-   ------------------------------------
-   | Id  | Operation          | Name  |
-   ------------------------------------
-   |   0 | SELECT STATEMENT   |       |
-   |   1 |  FILTER            |       |
-   |   2 |   TABLE ACCESS FULL| ALBUM |
-   |   3 |   TABLE ACCESS FULL| TRACK |
-   ------------------------------------
 
 My SQL (same plans):
    Correct Query:

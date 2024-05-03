@@ -46,6 +46,13 @@ namespace RedundancyBenchmarkSQL
             }
         }
 
+        public void ResetQueriesResults()
+        {
+            for (int i = 0; i < queryList.Count(); i++)
+            {
+                queryList[i].ResetQueryResult();
+            }
+        }
         public void ReadQueriesFromFile(string filePath)
         {
             if (!File.Exists(filePath))

@@ -32,6 +32,15 @@ namespace RedundancyBenchmarkSQL
             queries.ReadQueriesFromFile(queriesFilePath);
         }
 
+        public void ResetBenchmark()
+        {
+            SqlServerPoints = -1;
+            OraclePoints = -1;
+            MySqlPoints = -1;
+            PostgreSqlPoints = -1;
+
+            queries.ResetQueriesResults();
+        }
         public void SetDatabaseSystem(string providerName, string connectionString)
         {
             this.providerName = providerName;
@@ -323,7 +332,7 @@ namespace RedundancyBenchmarkSQL
                     PostgreRunScript(script); break;
             }
 
-            Console.WriteLine(script + " script finished.");
+            Console.WriteLine(Path.GetFileName(script) + " script finished.");
         }
         private void SqlServerRunScript(string scriptPath)
         {

@@ -1,10 +1,10 @@
 Benchmark Results:
-Microsoft SQL Server: 11 / 25
-Oracle: 16 / 25
-My SQL: 12 / 25
-Postgre SQL: 6 / 25
+Microsoft SQL Server: 11 / 27
+Oracle: 16 / 27
+My SQL: 12 / 27
+Postgre SQL: 6 / 27
 ----------------------------------------------------------------------------------------------------
-Redundancy Benchmark for 25 queries:
+Redundancy Benchmark for 27 queries:
 ----------------------------------------------------------------------------------------------------
 Category: Attributes
 Source: Brass and Goldberg
@@ -1426,6 +1426,82 @@ Postgre SQL (same plans):
    -   ->  Index Scan using track_pkey on track t  (cost=0.28..8.30 rows=1 width=20)
    -         Index Cond: (trackid = il.trackid)
 ----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: null
+Reference: null
+Description: NEW Unnecessary LEFT JOIN when USING aggregations that could be replaced by simple sub-query.
+Correct query:
+SELECT Invoice.InvoiceId, (
+SELECT COUNT(*)
+FROM Customer
+WHERE Customer.CustomerId = Invoice.CustomerId
+)
+FROM Invoice
+
+Query with redundancy:
+SELECT Invoice.InvoiceId, COUNT(*)
+FROM Invoice
+LEFT JOIN Customer ON Customer.CustomerId = Invoice.CustomerId
+GROUP BY Invoice.InvoiceId
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1006]=CASE WHEN [Expr1004] IS NULL THEN (0) ELSE [Expr1004] END))
+   -        |--Merge Join(Right Outer Join, MERGE:([LAS0084].[dbo].[Customer].[CustomerId])=([LAS0084].[dbo].[Invoice].[CustomerId]), RESIDUAL:([LAS0084].[dbo].[Customer].[CustomerId]=[LAS0084].[dbo].[Invoice].[CustomerId]))
+   -             |--Compute Scalar(DEFINE:([Expr1004]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END))
+   -             |    |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), ORDERED FORWARD)
+   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId]), ORDERED FORWARD)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1004]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END))
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId]))
+
+Oracle (different plans):
+   Correct Query:
+   ---------------------------------------
+   | Id  | Operation          | Name     |
+   ---------------------------------------
+   |   0 | SELECT STATEMENT   |          |
+   |   1 |  SORT AGGREGATE    |          |
+   |   2 |   TABLE ACCESS FULL| CUSTOMER |
+   |   3 |  TABLE ACCESS FULL | INVOICE  |
+   ---------------------------------------
+
+   Query with redundancy:
+   ----------------------------------------
+   | Id  | Operation           | Name     |
+   ----------------------------------------
+   |   0 | SELECT STATEMENT    |          |
+   |   1 |  HASH GROUP BY      |          |
+   |   2 |   HASH JOIN OUTER   |          |
+   |   3 |    TABLE ACCESS FULL| INVOICE  |
+   |   4 |    TABLE ACCESS FULL| CUSTOMER |
+   ----------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - PRIMARY on Invoice (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), Using index
+   - DEPENDENT SUBQUERY on Customer (eq_ref), key: PRIMARY comparing to las0084.Invoice.CustomerId, rows: 1 (filtered 100%), Using index
+
+   Query with redundancy:
+   - SIMPLE on Invoice (index), key: PRIMARY comparing to None, rows: 412 (filtered 100%), None
+   - SIMPLE on Customer (eq_ref), key: PRIMARY comparing to las0084.Invoice.CustomerId, rows: 1 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on invoice  (cost=0.00..1143.12 rows=412 width=12)
+   -   SubPlan 1
+   -     ->  Aggregate  (cost=2.74..2.75 rows=1 width=8)
+   -           ->  Seq Scan on customer  (cost=0.00..2.74 rows=1 width=0)
+   -                 Filter: (customerid = invoice.customerid)
+
+   Query with redundancy:
+   - HashAggregate  (cost=12.18..16.30 rows=412 width=12)
+   -   Group Key: invoice.invoiceid
+   -   ->  Seq Scan on invoice  (cost=0.00..10.12 rows=412 width=4)
+----------------------------------------------------------------------------------------------------
 Category: Aggregations
 Source: Brass and Goldberg
 Reference: 2.5 Error 17
@@ -1604,6 +1680,88 @@ Postgre SQL (same plans):
    Query with redundancy:
    - Aggregate  (cost=88.79..88.80 rows=1 width=32)
    -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=5)
+----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: null
+Reference: null
+Description: NEW Unnecessary replacing GROUP BY in MIN / MAX aggregations with subquery. !Different order!
+Correct query:
+SELECT CustomerId, SUM(Total)
+FROM Invoice
+GROUP BY CustomerId
+
+Query with redundancy:
+SELECT DISTINCT i1.CustomerId, (
+SELECT SUM(i2.Total)
+FROM Invoice AS i2
+WHERE i1.CustomerId = i2.CustomerId
+)
+FROM Invoice AS i1
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Invoice].[CustomerId]) DEFINE:([Expr1002]=SUM([LAS0084].[dbo].[Invoice].[Total])))
+   -        |--Sort(ORDER BY:([LAS0084].[dbo].[Invoice].[CustomerId] ASC))
+   -             |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice]))
+
+   Query with redundancy:
+   -   |--Sort(DISTINCT ORDER BY:([i1].[CustomerId] ASC, [Expr1004] ASC))
+   -        |--Compute Scalar(DEFINE:([Expr1004]=[Expr1002]))
+   -             |--Merge Join(Right Outer Join, MERGE:([i2].[CustomerId])=([i1].[CustomerId]), RESIDUAL:([LAS0084].[dbo].[Invoice].[CustomerId] as [i1].[CustomerId]=[LAS0084].[dbo].[Invoice].[CustomerId] as [i2].[CustomerId]))
+   -                  |--Stream Aggregate(GROUP BY:([i2].[CustomerId]) DEFINE:([Expr1002]=SUM([LAS0084].[dbo].[Invoice].[Total] as [i2].[Total])))
+   -                  |    |--Sort(ORDER BY:([i2].[CustomerId] ASC))
+   -                  |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice] AS [i2]))
+   -                  |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId] AS [i1]), ORDERED FORWARD)
+
+Oracle (different plans):
+   Correct Query:
+   --------------------------------------
+   | Id  | Operation          | Name    |
+   --------------------------------------
+   |   0 | SELECT STATEMENT   |         |
+   |   1 |  HASH GROUP BY     |         |
+   |   2 |   TABLE ACCESS FULL| INVOICE |
+   --------------------------------------
+
+   Query with redundancy:
+   -------------------------------------------
+   | Id  | Operation               | Name    |
+   -------------------------------------------
+   |   0 | SELECT STATEMENT        |         |
+   |   1 |  HASH UNIQUE            |         |
+   |   2 |   HASH GROUP BY         |         |
+   |   3 |    HASH JOIN RIGHT OUTER|         |
+   |   4 |     TABLE ACCESS FULL   | INVOICE |
+   |   5 |     TABLE ACCESS FULL   | INVOICE |
+   -------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Invoice (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), None
+
+   Query with redundancy:
+   - PRIMARY on i1 (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), Using index; Using temporary
+   - DEPENDENT SUBQUERY on i2 (ref), key: IFK_InvoiceCustomerId comparing to las0084.i1.CustomerId, rows: 6 (filtered 100%), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - HashAggregate  (cost=12.18..12.92 rows=59 width=36)
+   -   Group Key: customerid
+   -   ->  Seq Scan on invoice  (cost=0.00..10.12 rows=412 width=10)
+
+   Query with redundancy:
+   - Unique  (cost=4457.50..4460.59 rows=59 width=36)
+   -   ->  Sort  (cost=4457.50..4458.53 rows=412 width=36)
+   -         Sort Key: i1.customerid, ((SubPlan 1))
+   -         ->  Seq Scan on invoice i1  (cost=0.00..4439.61 rows=412 width=36)
+   -               SubPlan 1
+   -                 ->  Aggregate  (cost=10.74..10.75 rows=1 width=32)
+   -                       ->  Bitmap Heap Scan on invoice i2  (cost=4.33..10.72 rows=7 width=6)
+   -                             Recheck Cond: (i1.customerid = customerid)
+   -                             ->  Bitmap Index Scan on invoice_customer_id_idx  (cost=0.00..4.33 rows=7 width=0)
+   -                                   Index Cond: (i1.customerid = customerid)
 ----------------------------------------------------------------------------------------------------
 Category: Grouping
 Source: Brass and Goldberg

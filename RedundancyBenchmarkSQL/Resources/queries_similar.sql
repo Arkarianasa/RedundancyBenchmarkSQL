@@ -331,6 +331,24 @@ INNER JOIN InvoiceLine il ON t.TrackId = il.TrackId
 WHERE il.InvoiceLineId = 52
 -- end
 
+-- Source: null
+-- Reference: null
+-- Description: NEW Unnecessary LEFT JOIN when USING aggregations that could be replaced by simple sub-query. !Different order!
+-- Version: error
+SELECT Invoice.InvoiceId, COUNT(*)
+FROM Invoice
+LEFT JOIN Customer ON Customer.CustomerId = Invoice.CustomerId
+GROUP BY Invoice.InvoiceId
+
+-- Version: correct
+SELECT Invoice.InvoiceId, (
+SELECT COUNT(*)
+FROM Customer
+WHERE Customer.CustomerId = Invoice.CustomerId
+)
+FROM Invoice
+-- end
+
 ----------------------------------------
 -- Category: Aggregations
 ----------------------------------------
@@ -369,6 +387,36 @@ FROM Track
 -- Version: correct
 SELECT MAX(UnitPrice)
 FROM Track
+-- end
+
+-- Source: null
+-- Reference: null
+-- Description: NEW Unnecessary replacing GROUP BY in MIN / MAX aggregations with subquery. !Different order!
+-- Version: error
+SELECT DISTINCT i1.CustomerId, (
+SELECT SUM(i2.Total)
+FROM Invoice AS i2
+WHERE i1.CustomerId = i2.CustomerId
+)
+FROM Invoice AS i1
+
+-- Version: correct
+SELECT CustomerId, SUM(Total)
+FROM Invoice
+GROUP BY CustomerId
+
+-- Version: oracle error
+SELECT DISTINCT i1.CustomerId, (
+SELECT SUM(i2.Total)
+FROM Invoice i2
+WHERE i1.CustomerId = i2.CustomerId
+)
+FROM Invoice i1
+
+-- Version: oracle correct
+SELECT CustomerId, SUM(Total)
+FROM Invoice
+GROUP BY CustomerId
 -- end
 
 ----------------------------------------

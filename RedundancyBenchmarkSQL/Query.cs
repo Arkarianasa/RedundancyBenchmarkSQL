@@ -42,6 +42,18 @@ namespace RedundancyBenchmarkSQL
             DefaultQueries.Add("redundant", redundantQuery);
         }
 
+        public void ResetQueryResult()
+        {
+            SqlServerComparison = false;
+            OracleComparison = false;
+            MySqlComparison = false;
+            PostgreSqlComparison = false;
+
+            SqlServerPlan = new Dictionary<string, List<string>>();
+            OraclePlan = new Dictionary<string, List<string>>();
+            PostgreSqlPlan = new Dictionary<string, List<string>>();
+            MySqlPlan = new Dictionary<string, List<string>>();
+        }
         public void SetSqlServerQueries(string correctQuery, string redundantQuery)
         {
             SqlServerQueries.Add("correct", correctQuery);
