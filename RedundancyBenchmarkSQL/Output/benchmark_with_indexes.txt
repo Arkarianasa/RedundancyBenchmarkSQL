@@ -1,9 +1,13 @@
+Benchmark with indexes from: 08.05.2024 21:41:05
+
 Benchmark Results:
-Microsoft SQL Server: 10 / 27
-My SQL: 13 / 27
-Postgre SQL: 6 / 27
+Microsoft SQL Server: 11 / 32
+Oracle: 10 / 32
+My SQL: 15 / 32
+Postgre SQL: 7 / 32
+
 ----------------------------------------------------------------------------------------------------
-Redundancy Benchmark for 27 queries:
+Redundancy Benchmark for 32 queries:
 ----------------------------------------------------------------------------------------------------
 Category: Attributes
 Source: Brass and Goldberg
@@ -23,11 +27,64 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Compute Scalar(DEFINE:([Expr1002]='Czech Republic'))
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'Czech Republic'))
+   -   |--Compute Scalar(DEFINE:([Expr1002]='Czech Republic')) (Est Rows: 2, Est IO Cost: 0, Est CPU Time: 2E-07, Avg Row Size: 82)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'Czech Republic')) (Est Rows: 2, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 87)
 
    Query with redundancy:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'Czech Republic'))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'Czech Republic')) (Est Rows: 2, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 87)
+
+Oracle (different plans):
+   Correct Query:
+   ------------------------------------------------------------------------------------------------------------
+   | Id  | Operation                           | Name                 | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                    |                      |     2 |    48 |     2   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| CUSTOMER             |     2 |    48 |     2   (0)| 00:00:01 |
+   |*  2 |   INDEX RANGE SCAN                  | IDX_CUSTOMER_COUNTRY |     2 |       |     1   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+      2 - SEL$1 / CUSTOMER@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - access("COUNTRY"='Czech Republic')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "FIRSTNAME"[VARCHAR2,40], "LASTNAME"[VARCHAR2,20]
+      2 - "CUSTOMER".ROWID[ROWID,10]
+
+   Query with redundancy:
+   ------------------------------------------------------------------------------------------------------------
+   | Id  | Operation                           | Name                 | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                    |                      |     2 |    48 |     2   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| CUSTOMER             |     2 |    48 |     2   (0)| 00:00:01 |
+   |*  2 |   INDEX RANGE SCAN                  | IDX_CUSTOMER_COUNTRY |     2 |       |     1   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+      2 - SEL$1 / CUSTOMER@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - access("COUNTRY"='Czech Republic')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "FIRSTNAME"[VARCHAR2,40], "LASTNAME"[VARCHAR2,20], "COUNTRY"[VARCHAR2,40]
+      2 - "CUSTOMER".ROWID[ROWID,10], "COUNTRY"[VARCHAR2,40]
 
 My SQL (same plans):
    Correct Query:
@@ -61,10 +118,50 @@ Results:
 
 SQL Server (same plans):
    Correct Query:
-   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IFK_AlbumArtistId]))
+   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IFK_AlbumArtistId])) (Est Rows: 347, Est IO Cost: 0,003125, Est CPU Time: 0,0005387, Avg Row Size: 11)
 
    Query with redundancy:
-   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IFK_AlbumArtistId]))
+   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IFK_AlbumArtistId])) (Est Rows: 347, Est IO Cost: 0,003125, Est CPU Time: 0,0005387, Avg Row Size: 11)
+
+Oracle (different plans):
+   Correct Query:
+   ---------------------------------------------------------------------------
+   | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |       |   347 |  1388 |     3   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| ALBUM |   347 |  1388 |     3   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / ALBUM@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "ALBUMID"[NUMBER,22]
+
+   Query with redundancy:
+   ----------------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |   347 |  1388 |     4  (25)| 00:00:01 |
+   |   1 |  HASH UNIQUE       |       |   347 |  1388 |     4  (25)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| ALBUM |   347 |  1388 |     3   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / ALBUM@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "ALBUMID"[NUMBER,22]
+      2 - (rowset=256) "ALBUMID"[NUMBER,22]
 
 My SQL (same plans):
    Correct Query:
@@ -100,10 +197,71 @@ Results:
 
 SQL Server (same plans):
    Correct Query:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA'))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 460)
 
    Query with redundancy:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA'))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 460)
+
+Oracle (same plans):
+   Correct Query:
+   ------------------------------------------------------------------------------------------------------------
+   | Id  | Operation                           | Name                 | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                    |                      |    13 |  1469 |     2   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| CUSTOMER             |    13 |  1469 |     2   (0)| 00:00:01 |
+   |*  2 |   INDEX RANGE SCAN                  | IDX_CUSTOMER_COUNTRY |    13 |       |     1   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+      2 - SEL$1 / CUSTOMER@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - access("COUNTRY"='USA')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "CUSTOMER"."CUSTOMERID"[NUMBER,22], "CUSTOMER"."FIRSTNAME"[VARCHAR2,40], 
+          "CUSTOMER"."LASTNAME"[VARCHAR2,20], "CUSTOMER"."COMPANY"[VARCHAR2,80], 
+          "CUSTOMER"."ADDRESS"[VARCHAR2,70], "CUSTOMER"."CITY"[VARCHAR2,40], "CUSTOMER"."STATE"[VARCHAR2,40], 
+          "COUNTRY"[VARCHAR2,40], "CUSTOMER"."POSTALCODE"[VARCHAR2,10], "CUSTOMER"."PHONE"[VARCHAR2,24], 
+          "CUSTOMER"."FAX"[VARCHAR2,24], "CUSTOMER"."EMAIL"[VARCHAR2,60], "CUSTOMER"."SUPPORTREPID"[NUMBER,22]
+      2 - "CUSTOMER".ROWID[ROWID,10], "COUNTRY"[VARCHAR2,40]
+
+   Query with redundancy:
+   ------------------------------------------------------------------------------------------------------------
+   | Id  | Operation                           | Name                 | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                    |                      |    13 |  1469 |     2   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| CUSTOMER             |    13 |  1469 |     2   (0)| 00:00:01 |
+   |*  2 |   INDEX RANGE SCAN                  | IDX_CUSTOMER_COUNTRY |    13 |       |     1   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+      2 - SEL$1 / CUSTOMER@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - access("COUNTRY"='USA')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "CUSTOMER"."CUSTOMERID"[NUMBER,22], "CUSTOMER"."FIRSTNAME"[VARCHAR2,40], 
+          "CUSTOMER"."LASTNAME"[VARCHAR2,20], "CUSTOMER"."COMPANY"[VARCHAR2,80], 
+          "CUSTOMER"."ADDRESS"[VARCHAR2,70], "CUSTOMER"."CITY"[VARCHAR2,40], "CUSTOMER"."STATE"[VARCHAR2,40], 
+          "COUNTRY"[VARCHAR2,40], "CUSTOMER"."POSTALCODE"[VARCHAR2,10], "CUSTOMER"."PHONE"[VARCHAR2,24], 
+          "CUSTOMER"."FAX"[VARCHAR2,24], "CUSTOMER"."EMAIL"[VARCHAR2,60], "CUSTOMER"."SUPPORTREPID"[NUMBER,22]
+      2 - "CUSTOMER".ROWID[ROWID,10], "COUNTRY"[VARCHAR2,40]
 
 My SQL (same plans):
    Correct Query:
@@ -139,10 +297,71 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA'))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 460)
 
    Query with redundancy:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA' AND [LAS0084].[dbo].[Customer].[Country]=N'USA'))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA' AND [LAS0084].[dbo].[Customer].[Country]=N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 460)
+
+Oracle (same plans):
+   Correct Query:
+   ------------------------------------------------------------------------------------------------------------
+   | Id  | Operation                           | Name                 | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                    |                      |    13 |  1469 |     2   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| CUSTOMER             |    13 |  1469 |     2   (0)| 00:00:01 |
+   |*  2 |   INDEX RANGE SCAN                  | IDX_CUSTOMER_COUNTRY |    13 |       |     1   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+      2 - SEL$1 / CUSTOMER@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - access("COUNTRY"='USA')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "CUSTOMER"."CUSTOMERID"[NUMBER,22], "CUSTOMER"."FIRSTNAME"[VARCHAR2,40], 
+          "CUSTOMER"."LASTNAME"[VARCHAR2,20], "CUSTOMER"."COMPANY"[VARCHAR2,80], 
+          "CUSTOMER"."ADDRESS"[VARCHAR2,70], "CUSTOMER"."CITY"[VARCHAR2,40], "CUSTOMER"."STATE"[VARCHAR2,40], 
+          "COUNTRY"[VARCHAR2,40], "CUSTOMER"."POSTALCODE"[VARCHAR2,10], "CUSTOMER"."PHONE"[VARCHAR2,24], 
+          "CUSTOMER"."FAX"[VARCHAR2,24], "CUSTOMER"."EMAIL"[VARCHAR2,60], "CUSTOMER"."SUPPORTREPID"[NUMBER,22]
+      2 - "CUSTOMER".ROWID[ROWID,10], "COUNTRY"[VARCHAR2,40]
+
+   Query with redundancy:
+   ------------------------------------------------------------------------------------------------------------
+   | Id  | Operation                           | Name                 | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                    |                      |    13 |  1469 |     2   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| CUSTOMER             |    13 |  1469 |     2   (0)| 00:00:01 |
+   |*  2 |   INDEX RANGE SCAN                  | IDX_CUSTOMER_COUNTRY |    13 |       |     1   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+      2 - SEL$1 / CUSTOMER@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - access("COUNTRY"='USA')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "CUSTOMER"."CUSTOMERID"[NUMBER,22], "CUSTOMER"."FIRSTNAME"[VARCHAR2,40], 
+          "CUSTOMER"."LASTNAME"[VARCHAR2,20], "CUSTOMER"."COMPANY"[VARCHAR2,80], 
+          "CUSTOMER"."ADDRESS"[VARCHAR2,70], "CUSTOMER"."CITY"[VARCHAR2,40], "CUSTOMER"."STATE"[VARCHAR2,40], 
+          "COUNTRY"[VARCHAR2,40], "CUSTOMER"."POSTALCODE"[VARCHAR2,10], "CUSTOMER"."PHONE"[VARCHAR2,24], 
+          "CUSTOMER"."FAX"[VARCHAR2,24], "CUSTOMER"."EMAIL"[VARCHAR2,60], "CUSTOMER"."SUPPORTREPID"[NUMBER,22]
+      2 - "CUSTOMER".ROWID[ROWID,10], "COUNTRY"[VARCHAR2,40]
 
 My SQL (same plans):
    Correct Query:
@@ -178,10 +397,69 @@ Results:
 
 SQL Server (same plans):
    Correct Query:
-   -   |--Constant Scan
+   -   |--Constant Scan (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,157E-06, Avg Row Size: 179)
 
    Query with redundancy:
-   -   |--Constant Scan
+   -   |--Constant Scan (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,157E-06, Avg Row Size: 179)
+
+Oracle (different plans):
+   Correct Query:
+   ----------------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |     1 |    32 |     0   (0)|          |
+   |*  1 |  FILTER            |       |       |       |            |          |
+   |   2 |   TABLE ACCESS FULL| ALBUM |   347 | 11104 |     3   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / ALBUM@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter(NULL IS NOT NULL)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (rowset=256) "ALBUM"."ALBUMID"[NUMBER,22], 
+          "ALBUM"."TITLE"[VARCHAR2,160], "ALBUM"."ARTISTID"[NUMBER,22]
+      2 - (rowset=256) "ALBUM"."ALBUMID"[NUMBER,22], 
+          "ALBUM"."TITLE"[VARCHAR2,160], "ALBUM"."ARTISTID"[NUMBER,22]
+
+   Query with redundancy:
+   --------------------------------------------------------------------------------------------------------
+   | Id  | Operation                            | Name            | Rows  | Bytes | Cost (%CPU)| Time     |
+   --------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                     |                 |     1 |    32 |     0   (0)|          |
+   |*  1 |  FILTER                              |                 |       |       |            |          |
+   |   2 |   TABLE ACCESS BY INDEX ROWID BATCHED| ALBUM           |     1 |    32 |     2   (0)| 00:00:01 |
+   |*  3 |    INDEX RANGE SCAN                  | IDX_ALBUM_TITLE |     1 |       |     1   (0)| 00:00:01 |
+   --------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / ALBUM@SEL$1
+      3 - SEL$1 / ALBUM@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter(NULL IS NOT NULL)
+      3 - access("TITLE"='Fireball')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "ALBUM"."ALBUMID"[NUMBER,22], "TITLE"[VARCHAR2,160], "ALBUM"."ARTISTID"[NUMBER,22]
+      2 - "ALBUM"."ALBUMID"[NUMBER,22], "TITLE"[VARCHAR2,160], "ALBUM"."ARTISTID"[NUMBER,22]
+      3 - "ALBUM".ROWID[ROWID,10], "TITLE"[VARCHAR2,160]
 
 My SQL (same plans):
    Correct Query:
@@ -220,10 +498,67 @@ Results:
 
 SQL Server (same plans):
    Correct Query:
-   -   |--Constant Scan
+   -   |--Constant Scan (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,157E-06, Avg Row Size: 211)
 
    Query with redundancy:
-   -   |--Constant Scan
+   -   |--Constant Scan (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,157E-06, Avg Row Size: 211)
+
+Oracle (different plans):
+   Correct Query:
+   ----------------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |     1 |    17 |     0   (0)|          |
+   |*  1 |  FILTER            |       |       |       |            |          |
+   |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 59551 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter(NULL IS NOT NULL)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (rowset=256) "NAME"[VARCHAR2,200]
+      2 - (rowset=256) "NAME"[VARCHAR2,200]
+
+   Query with redundancy:
+   ------------------------------------------------------------------------------------------------------------
+   | Id  | Operation                            | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                     |                     |     1 |    21 |     0   (0)|          |
+   |*  1 |  FILTER                              |                     |       |       |            |          |
+   |   2 |   TABLE ACCESS BY INDEX ROWID BATCHED| TRACK               |     1 |    21 |     4   (0)| 00:00:01 |
+   |*  3 |    INDEX RANGE SCAN                  | IDX_TRACK_UNITPRICE |   175 |       |     2   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+      3 - SEL$1 / TRACK@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter(NULL IS NOT NULL)
+      3 - access("UNITPRICE">1.5 AND "UNITPRICE"<1)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "NAME"[VARCHAR2,200]
+      2 - "NAME"[VARCHAR2,200]
+      3 - "TRACK".ROWID[ROWID,10]
 
 My SQL (different plans):
    Correct Query:
@@ -260,10 +595,67 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[UnitPrice]>(1.00)))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[UnitPrice]>(1.00))) (Est Rows: 213, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 467)
 
    Query with redundancy:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[UnitPrice]>(0.50) AND [LAS0084].[dbo].[Track].[UnitPrice]>(1.00)))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[UnitPrice]>(0.50) AND [LAS0084].[dbo].[Track].[UnitPrice]>(1.00))) (Est Rows: 213, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 467)
+
+Oracle (same plans):
+   Correct Query:
+   -----------------------------------------------------------------------------------------------------------
+   | Id  | Operation                           | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+   -----------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                    |                     |   213 | 13632 |     5   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| TRACK               |   213 | 13632 |     5   (0)| 00:00:01 |
+   |*  2 |   INDEX RANGE SCAN                  | IDX_TRACK_UNITPRICE |   213 |       |     2   (0)| 00:00:01 |
+   -----------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / TRACK@SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - access("UNITPRICE">1)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "TRACK"."TRACKID"[NUMBER,22], "TRACK"."NAME"[VARCHAR2,200], "TRACK"."ALBUMID"[NUMBER,22], 
+          "TRACK"."MEDIATYPEID"[NUMBER,22], "TRACK"."GENREID"[NUMBER,22], "TRACK"."COMPOSER"[VARCHAR2,220], 
+          "TRACK"."MILLISECONDS"[NUMBER,22], "TRACK"."BYTES"[NUMBER,22], "UNITPRICE"[NUMBER,22]
+      2 - "TRACK".ROWID[ROWID,10], "UNITPRICE"[NUMBER,22]
+
+   Query with redundancy:
+   -----------------------------------------------------------------------------------------------------------
+   | Id  | Operation                           | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+   -----------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                    |                     |   213 | 13632 |     5   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| TRACK               |   213 | 13632 |     5   (0)| 00:00:01 |
+   |*  2 |   INDEX RANGE SCAN                  | IDX_TRACK_UNITPRICE |   213 |       |     2   (0)| 00:00:01 |
+   -----------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / TRACK@SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - access("UNITPRICE">1)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "TRACK"."TRACKID"[NUMBER,22], "TRACK"."NAME"[VARCHAR2,200], "TRACK"."ALBUMID"[NUMBER,22], 
+          "TRACK"."MEDIATYPEID"[NUMBER,22], "TRACK"."GENREID"[NUMBER,22], "TRACK"."COMPOSER"[VARCHAR2,220], 
+          "TRACK"."MILLISECONDS"[NUMBER,22], "TRACK"."BYTES"[NUMBER,22], "UNITPRICE"[NUMBER,22]
+      2 - "TRACK".ROWID[ROWID,10], "UNITPRICE"[NUMBER,22]
 
 My SQL (same plans):
    Correct Query:
@@ -297,10 +689,65 @@ Results:
 
 SQL Server (same plans):
    Correct Query:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[GenreId]=(1) OR [LAS0084].[dbo].[Track].[GenreId]=(2) OR [LAS0084].[dbo].[Track].[GenreId]=(3)))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[GenreId]=(1) OR [LAS0084].[dbo].[Track].[GenreId]=(2) OR [LAS0084].[dbo].[Track].[GenreId]=(3))) (Est Rows: 1801, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 467)
 
    Query with redundancy:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[GenreId]=(1) OR [LAS0084].[dbo].[Track].[GenreId]=(2) OR [LAS0084].[dbo].[Track].[GenreId]=(3)))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[GenreId]=(1) OR [LAS0084].[dbo].[Track].[GenreId]=(2) OR [LAS0084].[dbo].[Track].[GenreId]=(3))) (Est Rows: 1801, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 467)
+
+Oracle (same plans):
+   Correct Query:
+   ---------------------------------------------------------------------------
+   | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |       |  1801 |   112K|    11   (0)| 00:00:01 |
+   |*  1 |  TABLE ACCESS FULL| TRACK |  1801 |   112K|    11   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / TRACK@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter("GENREID"=1 OR "GENREID"=2 OR "GENREID"=3)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "TRACK"."TRACKID"[NUMBER,22], "TRACK"."NAME"[VARCHAR2,200], 
+          "TRACK"."ALBUMID"[NUMBER,22], "TRACK"."MEDIATYPEID"[NUMBER,22], 
+          "GENREID"[NUMBER,22], "TRACK"."COMPOSER"[VARCHAR2,220], 
+          "TRACK"."MILLISECONDS"[NUMBER,22], "TRACK"."BYTES"[NUMBER,22], 
+          "TRACK"."UNITPRICE"[NUMBER,22]
+
+   Query with redundancy:
+   ---------------------------------------------------------------------------
+   | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |       |  1801 |   112K|    11   (0)| 00:00:01 |
+   |*  1 |  TABLE ACCESS FULL| TRACK |  1801 |   112K|    11   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / TRACK@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter("GENREID"=1 OR "GENREID"=2 OR "GENREID"=3)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "TRACK"."TRACKID"[NUMBER,22], "TRACK"."NAME"[VARCHAR2,200], 
+          "TRACK"."ALBUMID"[NUMBER,22], "TRACK"."MEDIATYPEID"[NUMBER,22], 
+          "GENREID"[NUMBER,22], "TRACK"."COMPOSER"[VARCHAR2,220], 
+          "TRACK"."MILLISECONDS"[NUMBER,22], "TRACK"."BYTES"[NUMBER,22], 
+          "TRACK"."UNITPRICE"[NUMBER,22]
 
 My SQL (same plans):
    Correct Query:
@@ -333,13 +780,60 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine]))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine])) (Est Rows: 2240, Est IO Cost: 0,009791667, Est CPU Time: 0,002621, Avg Row Size: 32)
 
    Query with redundancy:
-   -   |--Hash Match(Inner Join, HASH:([LAS0084].[dbo].[InvoiceLine].[TrackId])=([LAS0084].[dbo].[InvoiceLine].[TrackId]))
-   -        |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[InvoiceLine].[TrackId]))
-   -        |    |--Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[IFK_InvoiceLineTrackId]), ORDERED FORWARD)
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine]))
+   -   |--Hash Match(Inner Join, HASH:([LAS0084].[dbo].[InvoiceLine].[TrackId])=([LAS0084].[dbo].[InvoiceLine].[TrackId])) (Est Rows: 2240, Est IO Cost: 0, Est CPU Time: 0,04905784, Avg Row Size: 32)
+   -        |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[InvoiceLine].[TrackId])) (Est Rows: 1984, Est IO Cost: 0, Est CPU Time: 0,002112, Avg Row Size: 11)
+   -        |    |--Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[IFK_InvoiceLineTrackId]), ORDERED FORWARD) (Est Rows: 2240, Est IO Cost: 0,006087963, Est CPU Time: 0,002621, Avg Row Size: 11)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine])) (Est Rows: 2240, Est IO Cost: 0,009791667, Est CPU Time: 0,002621, Avg Row Size: 32)
+
+Oracle (different plans):
+   Correct Query:
+   ---------------------------------------------------------------------------------
+   | Id  | Operation         | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |             |  2240 | 40320 |     5   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| INVOICELINE |  2240 | 40320 |     5   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / INVOICELINE@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "INVOICELINE"."INVOICELINEID"[NUMBER,22], 
+          "INVOICELINE"."INVOICEID"[NUMBER,22], 
+          "INVOICELINE"."TRACKID"[NUMBER,22], "INVOICELINE"."UNITPRICE"[NUMBER,22],
+           "INVOICELINE"."QUANTITY"[NUMBER,22]
+
+   Query with redundancy:
+   ---------------------------------------------------------------------------------
+   | Id  | Operation         | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |             |  2240 | 40320 |     5   (0)| 00:00:01 |
+   |*  1 |  TABLE ACCESS FULL| INVOICELINE |  2240 | 40320 |     5   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$D0DB0F9A / INVOICELINE@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter("TRACKID" IS NOT NULL)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "INVOICELINE"."INVOICELINEID"[NUMBER,22], 
+          "INVOICELINE"."INVOICEID"[NUMBER,22], "TRACKID"[NUMBER,22], 
+          "INVOICELINE"."UNITPRICE"[NUMBER,22], "INVOICELINE"."QUANTITY"[NUMBER,22]
 
 My SQL (different plans):
    Correct Query:
@@ -378,10 +872,52 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_Name]))
+   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_Name])) (Est Rows: 3503, Est IO Cost: 0,017199075, Est CPU Time: 0,0040103, Avg Row Size: 215)
 
    Query with redundancy:
-   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_Name]),  WHERE:([LAS0084].[dbo].[Track].[Name] like N'%'))
+   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_Name]),  WHERE:([LAS0084].[dbo].[Track].[Name] like N'%')) (Est Rows: 3503, Est IO Cost: 0,017199075, Est CPU Time: 0,0040103, Avg Row Size: 215)
+
+Oracle (different plans):
+   Correct Query:
+   ---------------------------------------------------------------------------
+   | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| TRACK |  3503 | 73563 |    11   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / TRACK@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
+
+   Query with redundancy:
+   ---------------------------------------------------------------------------
+   | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   |*  1 |  TABLE ACCESS FULL| TRACK |  3503 | 73563 |    11   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / TRACK@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter("NAME" LIKE '%' AND "NAME" IS NOT NULL)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
 
 My SQL (different plans):
    Correct Query:
@@ -416,10 +952,63 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA'))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 87)
 
    Query with redundancy:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country] like N'USA'))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country] like N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 87)
+
+Oracle (same plans):
+   Correct Query:
+   ------------------------------------------------------------------------------------------------------------
+   | Id  | Operation                           | Name                 | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                    |                      |    13 |   312 |     2   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| CUSTOMER             |    13 |   312 |     2   (0)| 00:00:01 |
+   |*  2 |   INDEX RANGE SCAN                  | IDX_CUSTOMER_COUNTRY |    13 |       |     1   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+      2 - SEL$1 / CUSTOMER@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - access("COUNTRY"='USA')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "FIRSTNAME"[VARCHAR2,40], "LASTNAME"[VARCHAR2,20]
+      2 - "CUSTOMER".ROWID[ROWID,10]
+
+   Query with redundancy:
+   ------------------------------------------------------------------------------------------------------------
+   | Id  | Operation                           | Name                 | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                    |                      |    13 |   312 |     2   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| CUSTOMER             |    13 |   312 |     2   (0)| 00:00:01 |
+   |*  2 |   INDEX RANGE SCAN                  | IDX_CUSTOMER_COUNTRY |    13 |       |     1   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+      2 - SEL$1 / CUSTOMER@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - access("COUNTRY"='USA')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "FIRSTNAME"[VARCHAR2,40], "LASTNAME"[VARCHAR2,20]
+      2 - "CUSTOMER".ROWID[ROWID,10]
 
 My SQL (different plans):
    Correct Query:
@@ -458,12 +1047,85 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]<>N'USA'))
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]<>N'USA')) (Est Rows: 46, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 460)
 
    Query with redundancy:
-   -   |--Nested Loops(Left Anti Semi Join, WHERE:([LAS0084].[dbo].[Customer].[Country] IS NULL OR [LAS0084].[dbo].[Customer].[Country]=[LAS0084].[dbo].[Customer].[Country]))
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]))
-   -        |--Index Seek(OBJECT:([LAS0084].[dbo].[Customer].[IDX_Customer_Country]), SEEK:([LAS0084].[dbo].[Customer].[Country]=N'USA') ORDERED FORWARD)
+   -   |--Nested Loops(Left Anti Semi Join, WHERE:([LAS0084].[dbo].[Customer].[Country] IS NULL OR [LAS0084].[dbo].[Customer].[Country]=[LAS0084].[dbo].[Customer].[Country])) (Est Rows: 56,541668, Est IO Cost: 0, Est CPU Time: 0,001787995, Avg Row Size: 488)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer])) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 488)
+   -        |--Index Seek(OBJECT:([LAS0084].[dbo].[Customer].[IDX_Customer_Country]), SEEK:([LAS0084].[dbo].[Customer].[Country]=N'USA') ORDERED FORWARD) (Est Rows: 13, Est IO Cost: 0,003125, Est CPU Time: 0,0001713, Avg Row Size: 23)
+
+Oracle (different plans):
+   Correct Query:
+   ------------------------------------------------------------------------------
+   | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |          |    46 |  5198 |     3   (0)| 00:00:01 |
+   |*  1 |  TABLE ACCESS FULL| CUSTOMER |    46 |  5198 |     3   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter("COUNTRY"<>'USA')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "CUSTOMER"."CUSTOMERID"[NUMBER,22], 
+          "CUSTOMER"."FIRSTNAME"[VARCHAR2,40], 
+          "CUSTOMER"."LASTNAME"[VARCHAR2,20], "CUSTOMER"."COMPANY"[VARCHAR2,80], 
+          "CUSTOMER"."ADDRESS"[VARCHAR2,70], "CUSTOMER"."CITY"[VARCHAR2,40], 
+          "CUSTOMER"."STATE"[VARCHAR2,40], "COUNTRY"[VARCHAR2,40], 
+          "CUSTOMER"."POSTALCODE"[VARCHAR2,10], "CUSTOMER"."PHONE"[VARCHAR2,24], 
+          "CUSTOMER"."FAX"[VARCHAR2,24], "CUSTOMER"."EMAIL"[VARCHAR2,60], 
+          "CUSTOMER"."SUPPORTREPID"[NUMBER,22]
+
+   Query with redundancy:
+   -------------------------------------------------------------------------------------------
+   | Id  | Operation          | Name                 | Rows  | Bytes | Cost (%CPU)| Time     |
+   -------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |                      |    46 |  5566 |     4   (0)| 00:00:01 |
+   |*  1 |  HASH JOIN ANTI SNA|                      |    46 |  5566 |     4   (0)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| CUSTOMER             |    59 |  6667 |     3   (0)| 00:00:01 |
+   |*  3 |   INDEX RANGE SCAN | IDX_CUSTOMER_COUNTRY |    13 |   104 |     1   (0)| 00:00:01 |
+   -------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$5DA710D3
+      2 - SEL$5DA710D3 / CUSTOMER@SEL$1
+      3 - SEL$5DA710D3 / CUSTOMER@SEL$2
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - access("COUNTRY"="COUNTRY")
+      3 - access("COUNTRY"='USA')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1) "COUNTRY"[VARCHAR2,40], "CUSTOMER"."CUSTOMERID"[NUMBER,22], 
+          "CUSTOMER"."FIRSTNAME"[VARCHAR2,40], "CUSTOMER"."LASTNAME"[VARCHAR2,20], 
+          "CUSTOMER"."COMPANY"[VARCHAR2,80], "CUSTOMER"."ADDRESS"[VARCHAR2,70], 
+          "CUSTOMER"."CITY"[VARCHAR2,40], "CUSTOMER"."STATE"[VARCHAR2,40], 
+          "CUSTOMER"."SUPPORTREPID"[NUMBER,22], "CUSTOMER"."POSTALCODE"[VARCHAR2,10], 
+          "CUSTOMER"."PHONE"[VARCHAR2,24], "CUSTOMER"."FAX"[VARCHAR2,24], 
+          "CUSTOMER"."EMAIL"[VARCHAR2,60]
+      2 - "CUSTOMER"."CUSTOMERID"[NUMBER,22], "CUSTOMER"."FIRSTNAME"[VARCHAR2,40], 
+          "CUSTOMER"."LASTNAME"[VARCHAR2,20], "CUSTOMER"."COMPANY"[VARCHAR2,80], 
+          "CUSTOMER"."ADDRESS"[VARCHAR2,70], "CUSTOMER"."CITY"[VARCHAR2,40], 
+          "CUSTOMER"."STATE"[VARCHAR2,40], "COUNTRY"[VARCHAR2,40], 
+          "CUSTOMER"."POSTALCODE"[VARCHAR2,10], "CUSTOMER"."PHONE"[VARCHAR2,24], 
+          "CUSTOMER"."FAX"[VARCHAR2,24], "CUSTOMER"."EMAIL"[VARCHAR2,60], 
+          "CUSTOMER"."SUPPORTREPID"[NUMBER,22]
+      3 - "COUNTRY"[VARCHAR2,40]
 
 My SQL (different plans):
    Correct Query:
@@ -511,16 +1173,79 @@ Results:
 
 SQL Server (same plans):
    Correct Query:
-   -   |--Merge Join(Inner Join, MERGE:([LAS0084].[dbo].[Track].[AlbumId])=([LAS0084].[dbo].[Album].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Album].[AlbumId]=[LAS0084].[dbo].[Track].[AlbumId]))
-   -        |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[AlbumId]))
-   -        |    |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackAlbumId]), ORDERED FORWARD)
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), ORDERED FORWARD)
+   -   |--Merge Join(Inner Join, MERGE:([LAS0084].[dbo].[Track].[AlbumId])=([LAS0084].[dbo].[Album].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Album].[AlbumId]=[LAS0084].[dbo].[Track].[AlbumId])) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0,0070921, Avg Row Size: 179)
+   -        |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[AlbumId])) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0,001925, Avg Row Size: 11)
+   -        |    |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackAlbumId]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,009050926, Est CPU Time: 0,0040103, Avg Row Size: 11)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), ORDERED FORWARD) (Est Rows: 347, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 179)
 
    Query with redundancy:
-   -   |--Merge Join(Inner Join, MERGE:([LAS0084].[dbo].[Track].[AlbumId])=([LAS0084].[dbo].[Album].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Album].[AlbumId]=[LAS0084].[dbo].[Track].[AlbumId]))
-   -        |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[AlbumId]))
-   -        |    |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackAlbumId]), ORDERED FORWARD)
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), ORDERED FORWARD)
+   -   |--Merge Join(Inner Join, MERGE:([LAS0084].[dbo].[Track].[AlbumId])=([LAS0084].[dbo].[Album].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Album].[AlbumId]=[LAS0084].[dbo].[Track].[AlbumId])) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0,0070921, Avg Row Size: 179)
+   -        |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[AlbumId])) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0,001925, Avg Row Size: 11)
+   -        |    |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackAlbumId]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,009050926, Est CPU Time: 0,0040103, Avg Row Size: 11)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), ORDERED FORWARD) (Est Rows: 347, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 179)
+
+Oracle (same plans):
+   Correct Query:
+   ----------------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |   347 | 12492 |    14   (0)| 00:00:01 |
+   |*  1 |  HASH JOIN SEMI    |       |   347 | 12492 |    14   (0)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| ALBUM |   347 | 11104 |     3   (0)| 00:00:01 |
+   |   3 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$5DA710D3
+      2 - SEL$5DA710D3 / ALBUM@SEL$1
+      3 - SEL$5DA710D3 / TRACK@SEL$2
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - access("ALBUM"."ALBUMID"="TRACK"."ALBUMID")
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "ALBUM"."ALBUMID"[NUMBER,22], 
+          "ALBUM"."ARTISTID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160]
+      2 - (rowset=256) "ALBUM"."ALBUMID"[NUMBER,22], 
+          "ALBUM"."TITLE"[VARCHAR2,160], "ALBUM"."ARTISTID"[NUMBER,22]
+      3 - (rowset=256) "TRACK"."ALBUMID"[NUMBER,22]
+
+   Query with redundancy:
+   ----------------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |   347 | 12492 |    14   (0)| 00:00:01 |
+   |*  1 |  HASH JOIN SEMI    |       |   347 | 12492 |    14   (0)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| ALBUM |   347 | 11104 |     3   (0)| 00:00:01 |
+   |   3 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$5DA710D3
+      2 - SEL$5DA710D3 / ALBUM@SEL$1
+      3 - SEL$5DA710D3 / TRACK@SEL$2
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - access("ALBUM"."ALBUMID"="TRACK"."ALBUMID")
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "ALBUM"."ALBUMID"[NUMBER,22], 
+          "ALBUM"."ARTISTID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160]
+      2 - (rowset=256) "ALBUM"."ALBUMID"[NUMBER,22], 
+          "ALBUM"."TITLE"[VARCHAR2,160], "ALBUM"."ARTISTID"[NUMBER,22]
+      3 - (rowset=256) "TRACK"."ALBUMID"[NUMBER,22]
 
 My SQL (same plans):
    Correct Query:
@@ -573,22 +1298,109 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Merge Join(Inner Join, MERGE:([LAS0084].[dbo].[Album].[AlbumId])=([LAS0084].[dbo].[Track].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Track].[AlbumId]=[LAS0084].[dbo].[Album].[AlbumId]))
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), ORDERED FORWARD)
-   -        |--Sort(DISTINCT ORDER BY:([LAS0084].[dbo].[Track].[AlbumId] ASC))
-   -             |--Hash Match(Inner Join, HASH:([LAS0084].[dbo].[Genre].[GenreId])=([LAS0084].[dbo].[Track].[GenreId]), RESIDUAL:([LAS0084].[dbo].[Genre].[GenreId]=[LAS0084].[dbo].[Track].[GenreId]))
-   -                  |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Pop') ORDERED FORWARD)
-   -                  |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]))
+   -   |--Merge Join(Inner Join, MERGE:([LAS0084].[dbo].[Album].[AlbumId])=([LAS0084].[dbo].[Track].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Track].[AlbumId]=[LAS0084].[dbo].[Album].[AlbumId])) (Est Rows: 108,41756, Est IO Cost: 0, Est CPU Time: 0,006567219, Avg Row Size: 175)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), ORDERED FORWARD) (Est Rows: 347, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 175)
+   -        |--Sort(DISTINCT ORDER BY:([LAS0084].[dbo].[Track].[AlbumId] ASC)) (Est Rows: 108,41756, Est IO Cost: 0,011261261, Est CPU Time: 0,0016586512, Avg Row Size: 11)
+   -             |--Hash Match(Inner Join, HASH:([LAS0084].[dbo].[Genre].[GenreId])=([LAS0084].[dbo].[Track].[GenreId]), RESIDUAL:([LAS0084].[dbo].[Genre].[GenreId]=[LAS0084].[dbo].[Track].[GenreId])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,040811867, Avg Row Size: 11)
+   -                  |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Pop') ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -                  |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 15)
 
    Query with redundancy:
-   -   |--Sort(DISTINCT ORDER BY:([LAS0084].[dbo].[Album].[AlbumId] ASC))
-   -        |--Hash Match(Inner Join, HASH:([LAS0084].[dbo].[Track].[AlbumId])=([LAS0084].[dbo].[Album].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Track].[AlbumId]=[LAS0084].[dbo].[Album].[AlbumId]))
-   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1006]) WITH UNORDERED PREFETCH)
-   -             |    |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Genre].[GenreId]))
-   -             |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Pop') ORDERED FORWARD)
-   -             |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[LAS0084].[dbo].[Genre].[GenreId]) ORDERED FORWARD)
-   -             |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD)
-   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IDX_Album_Title]))
+   -   |--Sort(DISTINCT ORDER BY:([LAS0084].[dbo].[Album].[AlbumId] ASC)) (Est Rows: 108,41756, Est IO Cost: 0,011261261, Est CPU Time: 0,0016588152, Avg Row Size: 175)
+   -        |--Hash Match(Inner Join, HASH:([LAS0084].[dbo].[Track].[AlbumId])=([LAS0084].[dbo].[Album].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Track].[AlbumId]=[LAS0084].[dbo].[Album].[AlbumId])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,022122895, Avg Row Size: 175)
+   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1006]) WITH UNORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -             |    |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Genre].[GenreId])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -             |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Pop') ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -             |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[LAS0084].[dbo].[Genre].[GenreId]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -             |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IDX_Album_Title])) (Est Rows: 347, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 175)
+
+Oracle (different plans):
+   Correct Query:
+   ---------------------------------------------------------------------------------------------------------
+   | Id  | Operation                              | Name           | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                       |                |   140 |  5740 |    16   (0)| 00:00:01 |
+   |*  1 |  HASH JOIN RIGHT SEMI                  |                |   140 |  5740 |    16   (0)| 00:00:01 |
+   |   2 |   VIEW                                 | VW_SQ_1        |   140 |  1820 |    13   (0)| 00:00:01 |
+   |*  3 |    HASH JOIN                           |                |   140 |  2800 |    13   (0)| 00:00:01 |
+   |   4 |     TABLE ACCESS BY INDEX ROWID BATCHED| GENRE          |     1 |    13 |     2   (0)| 00:00:01 |
+   |*  5 |      INDEX RANGE SCAN                  | IDX_GENRE_NAME |     1 |       |     1   (0)| 00:00:01 |
+   |   6 |     TABLE ACCESS FULL                  | TRACK          |  3503 | 24521 |    11   (0)| 00:00:01 |
+   |   7 |   TABLE ACCESS FULL                    | ALBUM          |   347 |  9716 |     3   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$C5FF4C4F
+      2 - SEL$101C0EA9 / VW_SQ_1@SEL$38AD4B0C
+      3 - SEL$101C0EA9
+      4 - SEL$101C0EA9 / GENRE@SEL$1
+      5 - SEL$101C0EA9 / GENRE@SEL$1
+      6 - SEL$101C0EA9 / TRACK@SEL$1
+      7 - SEL$C5FF4C4F / ALBUM@SEL$2
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - access("ITEM_1"="ALBUM"."ALBUMID")
+      3 - access("TRACK"."GENREID"="GENRE"."GENREID")
+      5 - access("GENRE"."NAME"='Pop')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "ALBUM"."ALBUMID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160]
+      2 - (rowset=256) "ITEM_1"[NUMBER,22]
+      3 - (#keys=1; rowset=256) "TRACK"."ALBUMID"[NUMBER,22]
+      4 - "GENRE"."GENREID"[NUMBER,22]
+      5 - "GENRE".ROWID[ROWID,10]
+      6 - (rowset=256) "TRACK"."ALBUMID"[NUMBER,22], "TRACK"."GENREID"[NUMBER,22]
+      7 - (rowset=256) "ALBUM"."ALBUMID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160]
+
+   Query with redundancy:
+   ---------------------------------------------------------------------------------------------------------
+   | Id  | Operation                              | Name           | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                       |                |   140 |  6720 |    17   (6)| 00:00:01 |
+   |   1 |  HASH UNIQUE                           |                |   140 |  6720 |    17   (6)| 00:00:01 |
+   |*  2 |   HASH JOIN SEMI                       |                |   140 |  6720 |    16   (0)| 00:00:01 |
+   |   3 |    MERGE JOIN CARTESIAN                |                |   347 | 14227 |     5   (0)| 00:00:01 |
+   |   4 |     TABLE ACCESS BY INDEX ROWID BATCHED| GENRE          |     1 |    13 |     2   (0)| 00:00:01 |
+   |*  5 |      INDEX RANGE SCAN                  | IDX_GENRE_NAME |     1 |       |     1   (0)| 00:00:01 |
+   |   6 |     BUFFER SORT                        |                |   347 |  9716 |     3   (0)| 00:00:01 |
+   |   7 |      TABLE ACCESS FULL                 | ALBUM          |   347 |  9716 |     3   (0)| 00:00:01 |
+   |   8 |    TABLE ACCESS FULL                   | TRACK          |  3503 | 24521 |    11   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$9E43CB6E
+      4 - SEL$9E43CB6E / GENRE@SEL$2
+      5 - SEL$9E43CB6E / GENRE@SEL$2
+      7 - SEL$9E43CB6E / ALBUM@SEL$1
+      8 - SEL$9E43CB6E / TRACK@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - access("TRACK"."GENREID"="GENRE"."GENREID" AND "ALBUM"."ALBUMID"="TRACK"."ALBUMID")
+      5 - access("GENRE"."NAME"='Pop')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=2; rowset=256) "ALBUM"."ALBUMID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160]
+      2 - (#keys=2; rowset=256) "ALBUM"."ALBUMID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160]
+      3 - (#keys=0) "GENRE"."GENREID"[NUMBER,22], "ALBUM"."ALBUMID"[NUMBER,22], 
+          "ALBUM"."TITLE"[VARCHAR2,160]
+      4 - "GENRE"."GENREID"[NUMBER,22]
+      5 - "GENRE".ROWID[ROWID,10]
+      6 - (#keys=0) "ALBUM"."ALBUMID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160]
+      7 - (rowset=256) "ALBUM"."ALBUMID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160]
+      8 - (rowset=256) "TRACK"."ALBUMID"[NUMBER,22], "TRACK"."GENREID"[NUMBER,22]
 
 My SQL (different plans):
    Correct Query:
@@ -650,10 +1462,66 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Index Seek(OBJECT:([LAS0084].[dbo].[Invoice].[IDX_Invoice_Total]), SEEK:([LAS0084].[dbo].[Invoice].[Total] < CONVERT_IMPLICIT(numeric(10,2),[@1],0)) ORDERED FORWARD)
+   -   |--Index Seek(OBJECT:([LAS0084].[dbo].[Invoice].[IDX_Invoice_Total]), SEEK:([LAS0084].[dbo].[Invoice].[Total] < CONVERT_IMPLICIT(numeric(10,2),[@1],0)) ORDERED FORWARD) (Est Rows: 55, Est IO Cost: 0,003125, Est CPU Time: 0,0002175, Avg Row Size: 20)
 
    Query with redundancy:
-   -   |--Index Seek(OBJECT:([LAS0084].[dbo].[Invoice].[IDX_Invoice_Total]), SEEK:([LAS0084].[dbo].[Invoice].[Total] < (1.00)) ORDERED FORWARD)
+   -   |--Index Seek(OBJECT:([LAS0084].[dbo].[Invoice].[IDX_Invoice_Total]), SEEK:([LAS0084].[dbo].[Invoice].[Total] < (1.00)) ORDERED FORWARD) (Est Rows: 55, Est IO Cost: 0,003125, Est CPU Time: 0,0002175, Avg Row Size: 20)
+
+Oracle (different plans):
+   Correct Query:
+   -----------------------------------------------------------------------------
+   | Id  | Operation         | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+   -----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |         |    55 |   440 |     3   (0)| 00:00:01 |
+   |*  1 |  TABLE ACCESS FULL| INVOICE |    55 |   440 |     3   (0)| 00:00:01 |
+   -----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / INVOICE@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter("INVOICE"."TOTAL"<1)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "INVOICE"."INVOICEID"[NUMBER,22], "INVOICE"."TOTAL"[NUMBER,22]
+
+   Query with redundancy:
+   -------------------------------------------------------------------------------
+   | Id  | Operation          | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   -------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |          |    55 |   770 |     6   (0)| 00:00:01 |
+   |*  1 |  HASH JOIN         |          |    55 |   770 |     6   (0)| 00:00:01 |
+   |*  2 |   TABLE ACCESS FULL| INVOICE  |    55 |   605 |     3   (0)| 00:00:01 |
+   |   3 |   TABLE ACCESS FULL| CUSTOMER |    59 |   177 |     3   (0)| 00:00:01 |
+   -------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$58A6D7F6
+      2 - SEL$58A6D7F6 / INVOICE@SEL$1
+      3 - SEL$58A6D7F6 / CUSTOMER@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - access("INVOICE"."CUSTOMERID"="CUSTOMER"."CUSTOMERID")
+      2 - filter("INVOICE"."TOTAL"<1)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "INVOICE"."INVOICEID"[NUMBER,22], 
+          "INVOICE"."TOTAL"[NUMBER,22]
+      2 - (rowset=256) "INVOICE"."INVOICEID"[NUMBER,22], 
+          "INVOICE"."CUSTOMERID"[NUMBER,22], "INVOICE"."TOTAL"[NUMBER,22]
+      3 - (rowset=256) "CUSTOMER"."CUSTOMERID"[NUMBER,22]
 
 My SQL (different plans):
    Correct Query:
@@ -693,12 +1561,62 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]))
+   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name])) (Est Rows: 25, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 135)
 
    Query with redundancy:
-   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([g1].[GenreId]))
-   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name] AS [g1]))
-   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre] AS [g2]), SEEK:([g2].[GenreId]=[LAS0084].[dbo].[Genre].[GenreId] as [g1].[GenreId]) ORDERED FORWARD)
+   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([g1].[GenreId])) (Est Rows: 25, Est IO Cost: 0, Est CPU Time: 0,0001045, Avg Row Size: 261)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name] AS [g1])) (Est Rows: 25, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 135)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre] AS [g2]), SEEK:([g2].[GenreId]=[LAS0084].[dbo].[Genre].[GenreId] as [g1].[GenreId]) ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 135)
+
+Oracle (different plans):
+   Correct Query:
+   ---------------------------------------------------------------------------
+   | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |       |    25 |   325 |     3   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| GENRE |    25 |   325 |     3   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / GENRE@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "GENREID"[NUMBER,22], "NAME"[VARCHAR2,120]
+
+   Query with redundancy:
+   ----------------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |    25 |   650 |     6   (0)| 00:00:01 |
+   |*  1 |  HASH JOIN         |       |    25 |   650 |     6   (0)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| GENRE |    25 |   325 |     3   (0)| 00:00:01 |
+   |   3 |   TABLE ACCESS FULL| GENRE |    25 |   325 |     3   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$58A6D7F6
+      2 - SEL$58A6D7F6 / G1@SEL$1
+      3 - SEL$58A6D7F6 / G2@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - access("G1"."GENREID"="G2"."GENREID")
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "G1"."GENREID"[NUMBER,22], 
+          "G2"."GENREID"[NUMBER,22], "G1"."NAME"[VARCHAR2,120], 
+          "G2"."NAME"[VARCHAR2,120]
+      2 - (rowset=256) "G1"."GENREID"[NUMBER,22], "G1"."NAME"[VARCHAR2,120]
+      3 - (rowset=256) "G2"."GENREID"[NUMBER,22], "G2"."NAME"[VARCHAR2,120]
 
 My SQL (different plans):
    Correct Query:
@@ -742,35 +1660,120 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1016]) WITH UNORDERED PREFETCH)
-   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1009]))
-   -        |    |--Stream Aggregate(GROUP BY:([Expr1009]))
-   -        |    |    |--Merge Join(Concatenation)
-   -        |    |         |--Assert(WHERE:(CASE WHEN [Expr1008]>(1) THEN (0) ELSE NULL END))
-   -        |    |         |    |--Stream Aggregate(DEFINE:([Expr1008]=Count(*), [Expr1009]=ANY([LAS0084].[dbo].[Genre].[GenreId])))
-   -        |    |         |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Rock') ORDERED FORWARD)
-   -        |    |         |--Assert(WHERE:(CASE WHEN [Expr1010]>(1) THEN (0) ELSE NULL END))
-   -        |    |              |--Stream Aggregate(DEFINE:([Expr1010]=Count(*), [Expr1011]=ANY([LAS0084].[dbo].[Genre].[GenreId])))
-   -        |    |                   |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Jazz') ORDERED FORWARD)
-   -        |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1009]) ORDERED FORWARD)
-   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD)
+   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1016]) WITH UNORDERED PREFETCH) (Est Rows: 210,18, Est IO Cost: 0, Est CPU Time: 0,0008785524, Avg Row Size: 215)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1009])) (Est Rows: 210,18, Est IO Cost: 0, Est CPU Time: 0,0008785524, Avg Row Size: 11)
+   -        |    |--Stream Aggregate(GROUP BY:([Expr1009])) (Est Rows: 1,5, Est IO Cost: 0, Est CPU Time: 1,75E-06, Avg Row Size: 11)
+   -        |    |    |--Merge Join(Concatenation) (Est Rows: 2, Est IO Cost: 0, Est CPU Time: 0,0056023, Avg Row Size: 11)
+   -        |    |         |--Assert(WHERE:(CASE WHEN [Expr1008]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -        |    |         |    |--Stream Aggregate(DEFINE:([Expr1008]=Count(*), [Expr1009]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -        |    |         |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Rock') ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -        |    |         |--Assert(WHERE:(CASE WHEN [Expr1010]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -        |    |              |--Stream Aggregate(DEFINE:([Expr1010]=Count(*), [Expr1011]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -        |    |                   |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Jazz') ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -        |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1009]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
 
    Query with redundancy:
-   -   |--Merge Join(Union)
-   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1020]) WITH ORDERED PREFETCH)
-   -        |    |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1013]))
-   -        |    |    |--Assert(WHERE:(CASE WHEN [Expr1012]>(1) THEN (0) ELSE NULL END))
-   -        |    |    |    |--Stream Aggregate(DEFINE:([Expr1012]=Count(*), [Expr1013]=ANY([LAS0084].[dbo].[Genre].[GenreId])))
-   -        |    |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Rock') ORDERED FORWARD)
-   -        |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1013]) ORDERED FORWARD)
-   -        |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD)
-   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1021]) WITH ORDERED PREFETCH)
-   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1015]))
-   -             |    |--Assert(WHERE:(CASE WHEN [Expr1014]>(1) THEN (0) ELSE NULL END))
-   -             |    |    |--Stream Aggregate(DEFINE:([Expr1014]=Count(*), [Expr1015]=ANY([LAS0084].[dbo].[Genre].[GenreId])))
-   -             |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Jazz') ORDERED FORWARD)
-   -             |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1015]) ORDERED FORWARD)
-   -             |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD)
+   -   |--Merge Join(Union) (Est Rows: 1,5, Est IO Cost: 0, Est CPU Time: 0,006188654, Avg Row Size: 215)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1020]) WITH ORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -        |    |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1013])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -        |    |    |--Assert(WHERE:(CASE WHEN [Expr1012]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -        |    |    |    |--Stream Aggregate(DEFINE:([Expr1012]=Count(*), [Expr1013]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -        |    |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Rock') ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -        |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1013]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -        |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1021]) WITH ORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1015])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -             |    |--Assert(WHERE:(CASE WHEN [Expr1014]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -             |    |    |--Stream Aggregate(DEFINE:([Expr1014]=Count(*), [Expr1015]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -             |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Jazz') ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -             |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1015]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -             |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+
+Oracle (different plans):
+   Correct Query:
+   -------------------------------------------------------------------------------------------------------
+   | Id  | Operation                            | Name           | Rows  | Bytes | Cost (%CPU)| Time     |
+   -------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                     |                |   275 |  6600 |    11   (0)| 00:00:01 |
+   |*  1 |  TABLE ACCESS FULL                   | TRACK          |   275 |  6600 |    11   (0)| 00:00:01 |
+   |   2 |   TABLE ACCESS BY INDEX ROWID BATCHED| GENRE          |     1 |    13 |     2   (0)| 00:00:01 |
+   |*  3 |    INDEX RANGE SCAN                  | IDX_GENRE_NAME |     1 |       |     1   (0)| 00:00:01 |
+   |   4 |   TABLE ACCESS BY INDEX ROWID BATCHED| GENRE          |     1 |    13 |     2   (0)| 00:00:01 |
+   |*  5 |    INDEX RANGE SCAN                  | IDX_GENRE_NAME |     1 |       |     1   (0)| 00:00:01 |
+   -------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / TRACK@SEL$1
+      2 - SEL$2 / GENRE@SEL$2
+      3 - SEL$2 / GENRE@SEL$2
+      4 - SEL$3 / GENRE@SEL$3
+      5 - SEL$3 / GENRE@SEL$3
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter("GENREID"= (SELECT "GENREID" FROM "GENRE" "GENRE" WHERE "NAME"='Rock') OR 
+                 "GENREID"= (SELECT "GENREID" FROM "GENRE" "GENRE" WHERE "NAME"='Jazz'))
+      3 - access("NAME"='Rock')
+      5 - access("NAME"='Jazz')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
+      2 - "GENREID"[NUMBER,22]
+      3 - "GENRE".ROWID[ROWID,10]
+      4 - "GENREID"[NUMBER,22]
+      5 - "GENRE".ROWID[ROWID,10]
+
+   Query with redundancy:
+   ---------------------------------------------------------------------------------------------------------
+   | Id  | Operation                              | Name           | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                       |                |   280 |  6720 |    28   (8)| 00:00:01 |
+   |   1 |  SORT UNIQUE                           |                |   280 |  6720 |    28   (8)| 00:00:01 |
+   |   2 |   UNION-ALL                            |                |       |       |            |          |
+   |*  3 |    TABLE ACCESS FULL                   | TRACK          |   140 |  3360 |    11   (0)| 00:00:01 |
+   |   4 |     TABLE ACCESS BY INDEX ROWID BATCHED| GENRE          |     1 |    13 |     2   (0)| 00:00:01 |
+   |*  5 |      INDEX RANGE SCAN                  | IDX_GENRE_NAME |     1 |       |     1   (0)| 00:00:01 |
+   |*  6 |    TABLE ACCESS FULL                   | TRACK          |   140 |  3360 |    11   (0)| 00:00:01 |
+   |   7 |     TABLE ACCESS BY INDEX ROWID BATCHED| GENRE          |     1 |    13 |     2   (0)| 00:00:01 |
+   |*  8 |      INDEX RANGE SCAN                  | IDX_GENRE_NAME |     1 |       |     1   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SET$1
+      3 - SEL$1 / TRACK@SEL$1
+      4 - SEL$2 / GENRE@SEL$2
+      5 - SEL$2 / GENRE@SEL$2
+      6 - SEL$3 / TRACK@SEL$3
+      7 - SEL$4 / GENRE@SEL$4
+      8 - SEL$4 / GENRE@SEL$4
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      3 - filter("GENREID"= (SELECT "GENREID" FROM "GENRE" "GENRE" WHERE "NAME"='Rock'))
+      5 - access("NAME"='Rock')
+      6 - filter("GENREID"= (SELECT "GENREID" FROM "GENRE" "GENRE" WHERE "NAME"='Jazz'))
+      8 - access("NAME"='Jazz')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=2) STRDEF[22], STRDEF[200]
+      2 - STRDEF[22], STRDEF[200]
+      3 - "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
+      4 - "GENREID"[NUMBER,22]
+      5 - "GENRE".ROWID[ROWID,10]
+      6 - "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
+      7 - "GENREID"[NUMBER,22]
+      8 - "GENRE".ROWID[ROWID,10]
 
 My SQL (different plans):
    Correct Query:
@@ -846,38 +1849,129 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Concatenation
-   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1020]) WITH UNORDERED PREFETCH)
-   -        |    |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1013]))
-   -        |    |    |--Assert(WHERE:(CASE WHEN [Expr1012]>(1) THEN (0) ELSE NULL END))
-   -        |    |    |    |--Stream Aggregate(DEFINE:([Expr1012]=Count(*), [Expr1013]=ANY([LAS0084].[dbo].[Genre].[GenreId])))
-   -        |    |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Classical') ORDERED FORWARD)
-   -        |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1013]) ORDERED FORWARD)
-   -        |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD)
-   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1021]) WITH UNORDERED PREFETCH)
-   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1015]))
-   -             |    |--Assert(WHERE:(CASE WHEN [Expr1014]>(1) THEN (0) ELSE NULL END))
-   -             |    |    |--Stream Aggregate(DEFINE:([Expr1014]=Count(*), [Expr1015]=ANY([LAS0084].[dbo].[Genre].[GenreId])))
-   -             |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Hip Hop/Rap') ORDERED FORWARD)
-   -             |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1015]) ORDERED FORWARD)
-   -             |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD)
+   -   |--Concatenation (Est Rows: 280,24, Est IO Cost: 0, Est CPU Time: 2,8024E-05, Avg Row Size: 215)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1020]) WITH UNORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -        |    |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1013])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -        |    |    |--Assert(WHERE:(CASE WHEN [Expr1012]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -        |    |    |    |--Stream Aggregate(DEFINE:([Expr1012]=Count(*), [Expr1013]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -        |    |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Classical') ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -        |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1013]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -        |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1021]) WITH UNORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1015])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -             |    |--Assert(WHERE:(CASE WHEN [Expr1014]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -             |    |    |--Stream Aggregate(DEFINE:([Expr1014]=Count(*), [Expr1015]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -             |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Hip Hop/Rap') ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -             |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1015]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -             |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
 
    Query with redundancy:
-   -   |--Merge Join(Union)
-   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1020]) WITH ORDERED PREFETCH)
-   -        |    |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1013]))
-   -        |    |    |--Assert(WHERE:(CASE WHEN [Expr1012]>(1) THEN (0) ELSE NULL END))
-   -        |    |    |    |--Stream Aggregate(DEFINE:([Expr1012]=Count(*), [Expr1013]=ANY([LAS0084].[dbo].[Genre].[GenreId])))
-   -        |    |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Classical') ORDERED FORWARD)
-   -        |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1013]) ORDERED FORWARD)
-   -        |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD)
-   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1021]) WITH ORDERED PREFETCH)
-   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1015]))
-   -             |    |--Assert(WHERE:(CASE WHEN [Expr1014]>(1) THEN (0) ELSE NULL END))
-   -             |    |    |--Stream Aggregate(DEFINE:([Expr1014]=Count(*), [Expr1015]=ANY([LAS0084].[dbo].[Genre].[GenreId])))
-   -             |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Hip Hop/Rap') ORDERED FORWARD)
-   -             |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1015]) ORDERED FORWARD)
-   -             |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD)
+   -   |--Merge Join(Union) (Est Rows: 1,5, Est IO Cost: 0, Est CPU Time: 0,006188654, Avg Row Size: 215)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1020]) WITH ORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -        |    |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1013])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -        |    |    |--Assert(WHERE:(CASE WHEN [Expr1012]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -        |    |    |    |--Stream Aggregate(DEFINE:([Expr1012]=Count(*), [Expr1013]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -        |    |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Classical') ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -        |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1013]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -        |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1021]) WITH ORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1015])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -             |    |--Assert(WHERE:(CASE WHEN [Expr1014]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -             |    |    |--Stream Aggregate(DEFINE:([Expr1014]=Count(*), [Expr1015]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -             |    |         |--Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[IDX_Genre_Name]), SEEK:([LAS0084].[dbo].[Genre].[Name]=N'Hip Hop/Rap') ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -             |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1015]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -             |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+
+Oracle (different plans):
+   Correct Query:
+   --------------------------------------------------------------------------------------------------------
+   | Id  | Operation                             | Name           | Rows  | Bytes | Cost (%CPU)| Time     |
+   --------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                      |                |   280 | 13440 |    26   (0)| 00:00:01 |
+   |   1 |  UNION-ALL                            |                |       |       |            |          |
+   |*  2 |   TABLE ACCESS FULL                   | TRACK          |   140 |  3360 |    11   (0)| 00:00:01 |
+   |   3 |    TABLE ACCESS BY INDEX ROWID BATCHED| GENRE          |     1 |    13 |     2   (0)| 00:00:01 |
+   |*  4 |     INDEX RANGE SCAN                  | IDX_GENRE_NAME |     1 |       |     1   (0)| 00:00:01 |
+   |*  5 |   TABLE ACCESS FULL                   | TRACK          |   140 |  3360 |    11   (0)| 00:00:01 |
+   |   6 |    TABLE ACCESS BY INDEX ROWID BATCHED| GENRE          |     1 |    13 |     2   (0)| 00:00:01 |
+   |*  7 |     INDEX RANGE SCAN                  | IDX_GENRE_NAME |     1 |       |     1   (0)| 00:00:01 |
+   --------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SET$1
+      2 - SEL$1 / TRACK@SEL$1
+      3 - SEL$2 / GENRE@SEL$2
+      4 - SEL$2 / GENRE@SEL$2
+      5 - SEL$3 / TRACK@SEL$3
+      6 - SEL$4 / GENRE@SEL$4
+      7 - SEL$4 / GENRE@SEL$4
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - filter("GENREID"= (SELECT "GENREID" FROM "GENRE" "GENRE" WHERE "NAME"='Classical'))
+      4 - access("NAME"='Classical')
+      5 - filter("GENREID"= (SELECT "GENREID" FROM "GENRE" "GENRE" WHERE "NAME"='Hip Hop/Rap'))
+      7 - access("NAME"='Hip Hop/Rap')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - STRDEF[22], STRDEF[200]
+      2 - "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
+      3 - "GENREID"[NUMBER,22]
+      4 - "GENRE".ROWID[ROWID,10]
+      5 - "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
+      6 - "GENREID"[NUMBER,22]
+      7 - "GENRE".ROWID[ROWID,10]
+
+   Query with redundancy:
+   ---------------------------------------------------------------------------------------------------------
+   | Id  | Operation                              | Name           | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                       |                |   280 |  6720 |    28   (8)| 00:00:01 |
+   |   1 |  SORT UNIQUE                           |                |   280 |  6720 |    28   (8)| 00:00:01 |
+   |   2 |   UNION-ALL                            |                |       |       |            |          |
+   |*  3 |    TABLE ACCESS FULL                   | TRACK          |   140 |  3360 |    11   (0)| 00:00:01 |
+   |   4 |     TABLE ACCESS BY INDEX ROWID BATCHED| GENRE          |     1 |    13 |     2   (0)| 00:00:01 |
+   |*  5 |      INDEX RANGE SCAN                  | IDX_GENRE_NAME |     1 |       |     1   (0)| 00:00:01 |
+   |*  6 |    TABLE ACCESS FULL                   | TRACK          |   140 |  3360 |    11   (0)| 00:00:01 |
+   |   7 |     TABLE ACCESS BY INDEX ROWID BATCHED| GENRE          |     1 |    13 |     2   (0)| 00:00:01 |
+   |*  8 |      INDEX RANGE SCAN                  | IDX_GENRE_NAME |     1 |       |     1   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SET$1
+      3 - SEL$1 / TRACK@SEL$1
+      4 - SEL$2 / GENRE@SEL$2
+      5 - SEL$2 / GENRE@SEL$2
+      6 - SEL$3 / TRACK@SEL$3
+      7 - SEL$4 / GENRE@SEL$4
+      8 - SEL$4 / GENRE@SEL$4
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      3 - filter("GENREID"= (SELECT "GENREID" FROM "GENRE" "GENRE" WHERE "NAME"='Classical'))
+      5 - access("NAME"='Classical')
+      6 - filter("GENREID"= (SELECT "GENREID" FROM "GENRE" "GENRE" WHERE "NAME"='Hip Hop/Rap'))
+      8 - access("NAME"='Hip Hop/Rap')
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=2) STRDEF[22], STRDEF[200]
+      2 - STRDEF[22], STRDEF[200]
+      3 - "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
+      4 - "GENREID"[NUMBER,22]
+      5 - "GENRE".ROWID[ROWID,10]
+      6 - "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
+      7 - "GENREID"[NUMBER,22]
+      8 - "GENRE".ROWID[ROWID,10]
 
 My SQL (different plans):
    Correct Query:
@@ -948,14 +2042,78 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Merge Join(Inner Join, MERGE:([t].[TrackId])=([il].[TrackId]), RESIDUAL:([LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId]=[LAS0084].[dbo].[Track].[TrackId] as [t].[TrackId]))
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), ORDERED FORWARD)
-   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[IFK_InvoiceLineTrackId] AS [il]), ORDERED FORWARD)
+   -   |--Merge Join(Inner Join, MERGE:([t].[TrackId])=([il].[TrackId]), RESIDUAL:([LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId]=[LAS0084].[dbo].[Track].[TrackId] as [t].[TrackId])) (Est Rows: 2240, Est IO Cost: 0, Est CPU Time: 0,0178843, Avg Row Size: 219)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 215)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[IFK_InvoiceLineTrackId] AS [il]), ORDERED FORWARD) (Est Rows: 2240, Est IO Cost: 0,006087963, Est CPU Time: 0,002621, Avg Row Size: 15)
 
    Query with redundancy:
-   -   |--Merge Join(Inner Join, MERGE:([t].[TrackId])=([il].[TrackId]), RESIDUAL:([LAS0084].[dbo].[Track].[TrackId] as [t].[TrackId]=[LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId]))
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), ORDERED FORWARD)
-   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[IFK_InvoiceLineTrackId] AS [il]), ORDERED FORWARD)
+   -   |--Merge Join(Inner Join, MERGE:([t].[TrackId])=([il].[TrackId]), RESIDUAL:([LAS0084].[dbo].[Track].[TrackId] as [t].[TrackId]=[LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId])) (Est Rows: 2240, Est IO Cost: 0, Est CPU Time: 0,0178843, Avg Row Size: 219)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 215)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[IFK_InvoiceLineTrackId] AS [il]), ORDERED FORWARD) (Est Rows: 2240, Est IO Cost: 0,006087963, Est CPU Time: 0,002621, Avg Row Size: 15)
+
+Oracle (different plans):
+   Correct Query:
+   ----------------------------------------------------------------------------------
+   | Id  | Operation          | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |             |  2240 | 64960 |    16   (0)| 00:00:01 |
+   |*  1 |  HASH JOIN         |             |  2240 | 64960 |    16   (0)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| INVOICELINE |  2240 | 17920 |     5   (0)| 00:00:01 |
+   |   3 |   TABLE ACCESS FULL| TRACK       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$58A6D7F6
+      2 - SEL$58A6D7F6 / IL@SEL$1
+      3 - SEL$58A6D7F6 / T@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - access("T"."TRACKID"="IL"."TRACKID")
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "T"."TRACKID"[NUMBER,22], 
+          "IL"."INVOICELINEID"[NUMBER,22], "T"."NAME"[VARCHAR2,200]
+      2 - (rowset=256) "IL"."INVOICELINEID"[NUMBER,22], 
+          "IL"."TRACKID"[NUMBER,22]
+      3 - (rowset=256) "T"."TRACKID"[NUMBER,22], "T"."NAME"[VARCHAR2,200]
+
+   Query with redundancy:
+   ----------------------------------------------------------------------------------
+   | Id  | Operation          | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |             |  2240 | 64960 |    16   (0)| 00:00:01 |
+   |*  1 |  HASH JOIN         |             |  2240 | 64960 |    16   (0)| 00:00:01 |
+   |*  2 |   TABLE ACCESS FULL| INVOICELINE |  2240 | 17920 |     5   (0)| 00:00:01 |
+   |   3 |   TABLE ACCESS FULL| TRACK       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$524A71AA
+      2 - SEL$524A71AA / IL@SEL$1
+      3 - SEL$524A71AA / T@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - access("T"."TRACKID"="IL"."TRACKID")
+      2 - filter("IL"."INVOICELINEID" IS NOT NULL)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "T"."TRACKID"[NUMBER,22], 
+          "IL"."INVOICELINEID"[NUMBER,22], "T"."NAME"[VARCHAR2,200]
+      2 - (rowset=256) "IL"."INVOICELINEID"[NUMBER,22], 
+          "IL"."TRACKID"[NUMBER,22]
+      3 - (rowset=256) "T"."TRACKID"[NUMBER,22], "T"."NAME"[VARCHAR2,200]
 
 My SQL (different plans):
    Correct Query:
@@ -1002,14 +2160,79 @@ Results:
 
 SQL Server (same plans):
    Correct Query:
-   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([il].[TrackId]))
-   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine] AS [il]), SEEK:([il].[InvoiceLineId]=(52)) ORDERED FORWARD)
-   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), SEEK:([t].[TrackId]=[LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId]) ORDERED FORWARD)
+   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([il].[TrackId])) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,18E-06, Avg Row Size: 219)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine] AS [il]), SEEK:([il].[InvoiceLineId]=(52)) ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 15)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), SEEK:([t].[TrackId]=[LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId]) ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 215)
 
    Query with redundancy:
-   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([il].[TrackId]))
-   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine] AS [il]), SEEK:([il].[InvoiceLineId]=(52)) ORDERED FORWARD)
-   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), SEEK:([t].[TrackId]=[LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId]) ORDERED FORWARD)
+   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([il].[TrackId])) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,18E-06, Avg Row Size: 219)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine] AS [il]), SEEK:([il].[InvoiceLineId]=(52)) ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 15)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), SEEK:([t].[TrackId]=[LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId]) ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 215)
+
+Oracle (different plans):
+   Correct Query:
+   ----------------------------------------------------------------------------------
+   | Id  | Operation          | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |             |     1 |    29 |    16   (0)| 00:00:01 |
+   |*  1 |  HASH JOIN         |             |     1 |    29 |    16   (0)| 00:00:01 |
+   |*  2 |   TABLE ACCESS FULL| INVOICELINE |     1 |     8 |     5   (0)| 00:00:01 |
+   |   3 |   TABLE ACCESS FULL| TRACK       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$58A6D7F6
+      2 - SEL$58A6D7F6 / IL@SEL$1
+      3 - SEL$58A6D7F6 / T@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - access("T"."TRACKID"="IL"."TRACKID")
+      2 - filter("IL"."INVOICELINEID"=52)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "T"."TRACKID"[NUMBER,22], 
+          "IL"."INVOICELINEID"[NUMBER,22], "T"."NAME"[VARCHAR2,200]
+      2 - (rowset=256) "IL"."INVOICELINEID"[NUMBER,22], 
+          "IL"."TRACKID"[NUMBER,22]
+      3 - (rowset=256) "T"."TRACKID"[NUMBER,22], "T"."NAME"[VARCHAR2,200]
+
+   Query with redundancy:
+   ----------------------------------------------------------------------------------
+   | Id  | Operation          | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |             |     1 |    29 |    16   (0)| 00:00:01 |
+   |*  1 |  HASH JOIN         |             |     1 |    29 |    16   (0)| 00:00:01 |
+   |*  2 |   TABLE ACCESS FULL| INVOICELINE |     1 |     8 |     5   (0)| 00:00:01 |
+   |   3 |   TABLE ACCESS FULL| TRACK       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$524A71AA
+      2 - SEL$524A71AA / IL@SEL$1
+      3 - SEL$524A71AA / T@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - access("T"."TRACKID"="IL"."TRACKID")
+      2 - filter("IL"."INVOICELINEID"=52)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "T"."TRACKID"[NUMBER,22], 
+          "IL"."INVOICELINEID"[NUMBER,22], "T"."NAME"[VARCHAR2,200]
+      2 - (rowset=256) "IL"."INVOICELINEID"[NUMBER,22], 
+          "IL"."TRACKID"[NUMBER,22]
+      3 - (rowset=256) "T"."TRACKID"[NUMBER,22], "T"."NAME"[VARCHAR2,200]
 
 My SQL (same plans):
    Correct Query:
@@ -1035,60 +2258,6 @@ Postgre SQL (same plans):
    -   ->  Index Scan using track_pkey on track t  (cost=0.28..8.30 rows=1 width=20)
    -         Index Cond: (trackid = il.trackid)
 ----------------------------------------------------------------------------------------------------
-Category: Joins and Unions
-Source: null
-Reference: null
-Description: NEW Unnecessary LEFT JOIN when USING aggregations that could be replaced by simple sub-query.
-Correct query:
-SELECT Invoice.InvoiceId, (
-SELECT COUNT(*)
-FROM Customer
-WHERE Customer.CustomerId = Invoice.CustomerId
-)
-FROM Invoice
-
-Query with redundancy:
-SELECT Invoice.InvoiceId, COUNT(*)
-FROM Invoice
-LEFT JOIN Customer ON Customer.CustomerId = Invoice.CustomerId
-GROUP BY Invoice.InvoiceId
-
-Results:
-
-SQL Server (different plans):
-   Correct Query:
-   -   |--Compute Scalar(DEFINE:([Expr1006]=CASE WHEN [Expr1004] IS NULL THEN (0) ELSE [Expr1004] END))
-   -        |--Merge Join(Right Outer Join, MERGE:([LAS0084].[dbo].[Customer].[CustomerId])=([LAS0084].[dbo].[Invoice].[CustomerId]), RESIDUAL:([LAS0084].[dbo].[Customer].[CustomerId]=[LAS0084].[dbo].[Invoice].[CustomerId]))
-   -             |--Compute Scalar(DEFINE:([Expr1004]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END))
-   -             |    |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), ORDERED FORWARD)
-   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId]), ORDERED FORWARD)
-
-   Query with redundancy:
-   -   |--Compute Scalar(DEFINE:([Expr1004]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END))
-   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IDX_Invoice_Total]))
-
-My SQL (different plans):
-   Correct Query:
-   - PRIMARY on Invoice (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), Using index
-   - DEPENDENT SUBQUERY on Customer (eq_ref), key: PRIMARY comparing to las0084.Invoice.CustomerId, rows: 1 (filtered 100%), Using index
-
-   Query with redundancy:
-   - SIMPLE on Invoice (index), key: PRIMARY comparing to None, rows: 412 (filtered 100%), None
-   - SIMPLE on Customer (eq_ref), key: PRIMARY comparing to las0084.Invoice.CustomerId, rows: 1 (filtered 100%), Using index
-
-Postgre SQL (different plans):
-   Correct Query:
-   - Seq Scan on invoice  (cost=0.00..1143.12 rows=412 width=12)
-   -   SubPlan 1
-   -     ->  Aggregate  (cost=2.74..2.75 rows=1 width=8)
-   -           ->  Seq Scan on customer  (cost=0.00..2.74 rows=1 width=0)
-   -                 Filter: (customerid = invoice.customerid)
-
-   Query with redundancy:
-   - HashAggregate  (cost=12.18..16.30 rows=412 width=12)
-   -   Group Key: invoice.invoiceid
-   -   ->  Seq Scan on invoice  (cost=0.00..10.12 rows=412 width=4)
-----------------------------------------------------------------------------------------------------
 Category: Aggregations
 Source: Brass and Goldberg
 Reference: 2.5 Error 17
@@ -1105,14 +2274,57 @@ Results:
 
 SQL Server (same plans):
    Correct Query:
-   -   |--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[Expr1003],0)))
-   -        |--Stream Aggregate(DEFINE:([Expr1003]=Count(*)))
-   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId]))
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[Expr1003],0))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 11)
+   -        |--Stream Aggregate(DEFINE:([Expr1003]=Count(*))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0,0021023, Avg Row Size: 11)
+   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId])) (Est Rows: 3503, Est IO Cost: 0,0075694444, Est CPU Time: 0,0040103, Avg Row Size: 9)
 
    Query with redundancy:
-   -   |--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[Expr1003],0)))
-   -        |--Stream Aggregate(DEFINE:([Expr1003]=Count(*)))
-   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId]))
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[Expr1003],0))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 11)
+   -        |--Stream Aggregate(DEFINE:([Expr1003]=Count(*))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0,0021023, Avg Row Size: 11)
+   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId])) (Est Rows: 3503, Est IO Cost: 0,0075694444, Est CPU Time: 0,0040103, Avg Row Size: 9)
+
+Oracle (different plans):
+   Correct Query:
+   --------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Cost (%CPU)| Time     |
+   --------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |     1 |    11   (0)| 00:00:01 |
+   |   1 |  SORT AGGREGATE    |       |     1 |            |          |
+   |   2 |   TABLE ACCESS FULL| TRACK |  3503 |    11   (0)| 00:00:01 |
+   --------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=0) COUNT(*)[22]
+      2 - (rowset=1019) 
+
+   Query with redundancy:
+   ----------------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |     1 |     4 |    11   (0)| 00:00:01 |
+   |   1 |  SORT AGGREGATE    |       |     1 |     4 |            |          |
+   |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=0) COUNT("TRACKID")[22]
+      2 - (rowset=256) "TRACKID"[NUMBER,22]
 
 My SQL (same plans):
    Correct Query:
@@ -1147,12 +2359,56 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[UnitPrice]))
-   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_UnitPrice]), ORDERED FORWARD)
+   -   |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[UnitPrice])) (Est Rows: 2, Est IO Cost: 0, Est CPU Time: 0,0017525, Avg Row Size: 16)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_UnitPrice]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,009050926, Est CPU Time: 0,0040103, Avg Row Size: 16)
 
    Query with redundancy:
-   -   |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[UnitPrice]) DEFINE:([Expr1002]=MAX([LAS0084].[dbo].[Track].[UnitPrice])))
-   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_UnitPrice]), ORDERED FORWARD)
+   -   |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[UnitPrice]) DEFINE:([Expr1002]=MAX([LAS0084].[dbo].[Track].[UnitPrice]))) (Est Rows: 2, Est IO Cost: 0, Est CPU Time: 0,0021028, Avg Row Size: 16)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_UnitPrice]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,009050926, Est CPU Time: 0,0040103, Avg Row Size: 16)
+
+Oracle (different plans):
+   Correct Query:
+   ----------------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |     2 |     8 |    12   (9)| 00:00:01 |
+   |   1 |  HASH UNIQUE       |       |     2 |     8 |    12   (9)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "UNITPRICE"[NUMBER,22]
+      2 - (rowset=256) "UNITPRICE"[NUMBER,22]
+
+   Query with redundancy:
+   ----------------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |     2 |     8 |    12   (9)| 00:00:01 |
+   |   1 |  HASH GROUP BY     |       |     2 |     8 |    12   (9)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "UNITPRICE"[NUMBER,22], 
+          MAX("UNITPRICE")[22]
+      2 - (rowset=256) "UNITPRICE"[NUMBER,22]
 
 My SQL (different plans):
    Correct Query:
@@ -1188,14 +2444,57 @@ Results:
 
 SQL Server (same plans):
    Correct Query:
-   -   |--Stream Aggregate(DEFINE:([Expr1002]=MAX([LAS0084].[dbo].[Track].[UnitPrice])))
-   -        |--Top(TOP EXPRESSION:((1)))
-   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_UnitPrice]), ORDERED BACKWARD)
+   -   |--Stream Aggregate(DEFINE:([Expr1002]=MAX([LAS0084].[dbo].[Track].[UnitPrice]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 16)
+   -        |--Top(TOP EXPRESSION:((1))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1E-07, Avg Row Size: 16)
+   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_UnitPrice]), ORDERED BACKWARD) (Est Rows: 1, Est IO Cost: 0,009050926, Est CPU Time: 0,0040103, Avg Row Size: 16)
 
    Query with redundancy:
-   -   |--Stream Aggregate(DEFINE:([Expr1002]=MAX([LAS0084].[dbo].[Track].[UnitPrice])))
-   -        |--Top(TOP EXPRESSION:((1)))
-   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_UnitPrice]), ORDERED BACKWARD)
+   -   |--Stream Aggregate(DEFINE:([Expr1002]=MAX([LAS0084].[dbo].[Track].[UnitPrice]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 16)
+   -        |--Top(TOP EXPRESSION:((1))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1E-07, Avg Row Size: 16)
+   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_UnitPrice]), ORDERED BACKWARD) (Est Rows: 1, Est IO Cost: 0,009050926, Est CPU Time: 0,0040103, Avg Row Size: 16)
+
+Oracle (same plans):
+   Correct Query:
+   --------------------------------------------------------------------------------------------------
+   | Id  | Operation                  | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+   --------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT           |                     |     1 |     4 |     2   (0)| 00:00:01 |
+   |   1 |  SORT AGGREGATE            |                     |     1 |     4 |            |          |
+   |   2 |   INDEX FULL SCAN (MIN/MAX)| IDX_TRACK_UNITPRICE |     1 |     4 |     2   (0)| 00:00:01 |
+   --------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=0) MAX("UNITPRICE")[22]
+      2 - "UNITPRICE"[NUMBER,22]
+
+   Query with redundancy:
+   --------------------------------------------------------------------------------------------------
+   | Id  | Operation                  | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+   --------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT           |                     |     1 |     4 |     2   (0)| 00:00:01 |
+   |   1 |  SORT AGGREGATE            |                     |     1 |     4 |            |          |
+   |   2 |   INDEX FULL SCAN (MIN/MAX)| IDX_TRACK_UNITPRICE |     1 |     4 |     2   (0)| 00:00:01 |
+   --------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=0) MAX("UNITPRICE")[22]
+      2 - "UNITPRICE"[NUMBER,22]
 
 My SQL (same plans):
    Correct Query:
@@ -1222,7 +2521,7 @@ Postgre SQL (same plans):
 Category: Aggregations
 Source: null
 Reference: null
-Description: NEW Unnecessary replacing GROUP BY in MIN / MAX aggregations with subquery. !Different order!
+Description: Unnecessary replacing GROUP BY in MIN / MAX aggregations with subquery.
 Correct query:
 SELECT CustomerId, SUM(Total)
 FROM Invoice
@@ -1240,18 +2539,76 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Invoice].[CustomerId]) DEFINE:([Expr1002]=SUM([LAS0084].[dbo].[Invoice].[Total])))
-   -        |--Sort(ORDER BY:([LAS0084].[dbo].[Invoice].[CustomerId] ASC))
-   -             |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice]))
+   -   |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Invoice].[CustomerId]) DEFINE:([Expr1002]=SUM([LAS0084].[dbo].[Invoice].[Total]))) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 0,0002767, Avg Row Size: 28)
+   -        |--Sort(ORDER BY:([LAS0084].[dbo].[Invoice].[CustomerId] ASC)) (Est Rows: 412, Est IO Cost: 0,011261261, Est CPU Time: 0,0056830077, Avg Row Size: 20)
+   -             |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice])) (Est Rows: 412, Est IO Cost: 0,0075694444, Est CPU Time: 0,0006102, Avg Row Size: 20)
 
    Query with redundancy:
-   -   |--Sort(DISTINCT ORDER BY:([i1].[CustomerId] ASC, [Expr1004] ASC))
-   -        |--Compute Scalar(DEFINE:([Expr1004]=[Expr1002]))
-   -             |--Merge Join(Right Outer Join, MERGE:([i2].[CustomerId])=([i1].[CustomerId]), RESIDUAL:([LAS0084].[dbo].[Invoice].[CustomerId] as [i1].[CustomerId]=[LAS0084].[dbo].[Invoice].[CustomerId] as [i2].[CustomerId]))
-   -                  |--Stream Aggregate(GROUP BY:([i2].[CustomerId]) DEFINE:([Expr1002]=SUM([LAS0084].[dbo].[Invoice].[Total] as [i2].[Total])))
-   -                  |    |--Sort(ORDER BY:([i2].[CustomerId] ASC))
-   -                  |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice] AS [i2]))
-   -                  |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId] AS [i1]), ORDERED FORWARD)
+   -   |--Sort(DISTINCT ORDER BY:([i1].[CustomerId] ASC, [Expr1004] ASC)) (Est Rows: 394,36353, Est IO Cost: 0,011261261, Est CPU Time: 0,0056830156, Avg Row Size: 28)
+   -        |--Compute Scalar(DEFINE:([Expr1004]=[Expr1002])) (Est Rows: 412, Est IO Cost: 0, Est CPU Time: 4,12E-05, Avg Row Size: 45)
+   -             |--Merge Join(Right Outer Join, MERGE:([i2].[CustomerId])=([i1].[CustomerId]), RESIDUAL:([LAS0084].[dbo].[Invoice].[CustomerId] as [i1].[CustomerId]=[LAS0084].[dbo].[Invoice].[CustomerId] as [i2].[CustomerId])) (Est Rows: 412, Est IO Cost: 0, Est CPU Time: 0,0066303, Avg Row Size: 28)
+   -                  |--Stream Aggregate(GROUP BY:([i2].[CustomerId]) DEFINE:([Expr1002]=SUM([LAS0084].[dbo].[Invoice].[Total] as [i2].[Total]))) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 0,0002767, Avg Row Size: 28)
+   -                  |    |--Sort(ORDER BY:([i2].[CustomerId] ASC)) (Est Rows: 412, Est IO Cost: 0,011261261, Est CPU Time: 0,0056830077, Avg Row Size: 20)
+   -                  |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice] AS [i2])) (Est Rows: 412, Est IO Cost: 0,0075694444, Est CPU Time: 0,0006102, Avg Row Size: 20)
+   -                  |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId] AS [i1]), ORDERED FORWARD) (Est Rows: 412, Est IO Cost: 0,003125, Est CPU Time: 0,0006102, Avg Row Size: 11)
+
+Oracle (different plans):
+   Correct Query:
+   ------------------------------------------------------------------------------
+   | Id  | Operation          | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |         |    59 |   413 |     4  (25)| 00:00:01 |
+   |   1 |  HASH GROUP BY     |         |    59 |   413 |     4  (25)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| INVOICE |   412 |  2884 |     3   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / INVOICE@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "CUSTOMERID"[NUMBER,22], SUM("TOTAL")[22]
+      2 - (rowset=256) "CUSTOMERID"[NUMBER,22], "TOTAL"[NUMBER,22]
+
+   Query with redundancy:
+   -----------------------------------------------------------------------------------
+   | Id  | Operation               | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+   -----------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT        |         |  2462 | 54164 |     7  (15)| 00:00:01 |
+   |   1 |  HASH UNIQUE            |         |  2462 | 54164 |     7  (15)| 00:00:01 |
+   |   2 |   HASH GROUP BY         |         |  2462 | 54164 |     7  (15)| 00:00:01 |
+   |*  3 |    HASH JOIN RIGHT OUTER|         |  2878 | 63316 |     6   (0)| 00:00:01 |
+   |   4 |     TABLE ACCESS FULL   | INVOICE |   412 |  2884 |     3   (0)| 00:00:01 |
+   |   5 |     TABLE ACCESS FULL   | INVOICE |   412 |  6180 |     3   (0)| 00:00:01 |
+   -----------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$841DDE77
+      4 - SEL$841DDE77 / I2@SEL$2
+      5 - SEL$841DDE77 / I1@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      3 - access("I1"."CUSTOMERID"="I2"."CUSTOMERID"(+))
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=2; rowset=256) "I1"."CUSTOMERID"[NUMBER,22], 
+          SUM("I2"."TOTAL")[22]
+      2 - (#keys=3; rowset=256) "I2"."CUSTOMERID"[NUMBER,22], 
+          ROWID[ROWID,10], "I1"."CUSTOMERID"[NUMBER,22], SUM("I2"."TOTAL")[22]
+      3 - (#keys=1; rowset=256) "I2"."CUSTOMERID"[NUMBER,22], 
+          "I1"."CUSTOMERID"[NUMBER,22], "I2"."TOTAL"[NUMBER,22], ROWID[ROWID,10]
+      4 - (rowset=256) "I2"."CUSTOMERID"[NUMBER,22], "I2"."TOTAL"[NUMBER,22]
+      5 - (rowset=256) ROWID[ROWID,10], "I1"."CUSTOMERID"[NUMBER,22]
 
 My SQL (different plans):
    Correct Query:
@@ -1279,10 +2636,108 @@ Postgre SQL (different plans):
    -                             ->  Bitmap Index Scan on invoice_customer_id_idx  (cost=0.00..4.33 rows=7 width=0)
    -                                   Index Cond: (i1.customerid = customerid)
 ----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: Brass and Goldberg
+Reference: 2.6 Error 19
+Description: Using aggregation in subquery on id is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT Invoice.InvoiceId, 1
+FROM Invoice
+
+Query with redundancy:
+SELECT Invoice.InvoiceId, (
+SELECT COUNT(*)
+FROM Customer
+WHERE Customer.CustomerId = Invoice.CustomerId
+)
+FROM Invoice
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=(1))) (Est Rows: 412, Est IO Cost: 0, Est CPU Time: 4,12E-05, Avg Row Size: 15)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IDX_Invoice_Total])) (Est Rows: 412, Est IO Cost: 0,003125, Est CPU Time: 0,0006102, Avg Row Size: 11)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1006]=CASE WHEN [Expr1004] IS NULL THEN (0) ELSE [Expr1004] END)) (Est Rows: 412, Est IO Cost: 0, Est CPU Time: 4,12E-05, Avg Row Size: 15)
+   -        |--Merge Join(Right Outer Join, MERGE:([LAS0084].[dbo].[Customer].[CustomerId])=([LAS0084].[dbo].[Invoice].[CustomerId]), RESIDUAL:([LAS0084].[dbo].[Customer].[CustomerId]=[LAS0084].[dbo].[Invoice].[CustomerId])) (Est Rows: 412, Est IO Cost: 0, Est CPU Time: 0,0066303, Avg Row Size: 15)
+   -             |--Compute Scalar(DEFINE:([Expr1004]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END)) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 5,9E-06, Avg Row Size: 15)
+   -             |    |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), ORDERED FORWARD) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 11)
+   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId]), ORDERED FORWARD) (Est Rows: 412, Est IO Cost: 0,003125, Est CPU Time: 0,0006102, Avg Row Size: 15)
+
+Oracle (different plans):
+   Correct Query:
+   -----------------------------------------------------------------------------
+   | Id  | Operation         | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+   -----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |         |   412 |  1648 |     3   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| INVOICE |   412 |  1648 |     3   (0)| 00:00:01 |
+   -----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / INVOICE@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "INVOICE"."INVOICEID"[NUMBER,22]
+
+   Query with redundancy:
+   -------------------------------------------------------------------------------
+   | Id  | Operation          | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   -------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |          |   412 |  2884 |   180   (0)| 00:00:01 |
+   |   1 |  SORT AGGREGATE    |          |     1 |     3 |            |          |
+   |*  2 |   TABLE ACCESS FULL| CUSTOMER |     1 |     3 |     3   (0)| 00:00:01 |
+   |   3 |  TABLE ACCESS FULL | INVOICE  |   412 |  2884 |     3   (0)| 00:00:01 |
+   -------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$2
+      2 - SEL$2 / CUSTOMER@SEL$2
+      3 - SEL$1 / INVOICE@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      2 - filter("CUSTOMER"."CUSTOMERID"=:B1)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=0) COUNT(*)[22]
+      2 - (rowset=1019) 
+      3 - "INVOICE"."INVOICEID"[NUMBER,22], 
+          "INVOICE"."CUSTOMERID"[NUMBER,22]
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Invoice (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), Using index
+
+   Query with redundancy:
+   - PRIMARY on Invoice (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), Using index
+   - DEPENDENT SUBQUERY on Customer (eq_ref), key: PRIMARY comparing to las0084.Invoice.CustomerId, rows: 1 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on invoice  (cost=0.00..10.12 rows=412 width=8)
+
+   Query with redundancy:
+   - Seq Scan on invoice  (cost=0.00..1143.12 rows=412 width=12)
+   -   SubPlan 1
+   -     ->  Aggregate  (cost=2.74..2.75 rows=1 width=8)
+   -           ->  Seq Scan on customer  (cost=0.00..2.74 rows=1 width=0)
+   -                 Filter: (customerid = invoice.customerid)
+----------------------------------------------------------------------------------------------------
 Category: Grouping
 Source: Brass and Goldberg
 Reference: 2.6 Error 19
-Description: Using group by on id is unnecessary and redundant because there is always only one tuple per id.
+Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
 Correct query:
 SELECT ArtistId, '1'
 FROM Artist
@@ -1296,12 +2751,52 @@ Results:
 
 SQL Server (different plans):
    Correct Query:
-   -   |--Compute Scalar(DEFINE:([Expr1002]='1'))
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Artist].[PK_Artist]))
+   -   |--Compute Scalar(DEFINE:([Expr1002]='1')) (Est Rows: 275, Est IO Cost: 0, Est CPU Time: 2,75E-05, Avg Row Size: 15)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Artist].[PK_Artist])) (Est Rows: 275, Est IO Cost: 0,0038657407, Est CPU Time: 0,0004595, Avg Row Size: 11)
 
    Query with redundancy:
-   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END))
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Artist].[PK_Artist]))
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END)) (Est Rows: 275, Est IO Cost: 0, Est CPU Time: 2,75E-05, Avg Row Size: 15)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Artist].[PK_Artist])) (Est Rows: 275, Est IO Cost: 0,0038657407, Est CPU Time: 0,0004595, Avg Row Size: 11)
+
+Oracle (different plans):
+   Correct Query:
+   ----------------------------------------------------------------------------
+   | Id  | Operation         | Name   | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |        |   275 |  1100 |     3   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| ARTIST |   275 |  1100 |     3   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / ARTIST@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "ARTISTID"[NUMBER,22]
+
+   Query with redundancy:
+   -----------------------------------------------------------------------------
+   | Id  | Operation          | Name   | Rows  | Bytes | Cost (%CPU)| Time     |
+   -----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |        |   275 |  1100 |     4  (25)| 00:00:01 |
+   |   1 |  HASH GROUP BY     |        |   275 |  1100 |     4  (25)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| ARTIST |   275 |  1100 |     3   (0)| 00:00:01 |
+   -----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / ARTIST@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "ARTISTID"[NUMBER,22], COUNT(*)[22]
+      2 - (rowset=256) "ARTISTID"[NUMBER,22]
 
 My SQL (same plans):
    Correct Query:
@@ -1346,14 +2841,85 @@ Results:
 
 SQL Server (same plans):
    Correct Query:
-   -   |--Nested Loops(Left Semi Join)
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), WHERE:([LAS0084].[dbo].[Album].[Title]=N'Outbreak'))
-   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId]),  WHERE:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]))
+   -   |--Nested Loops(Left Semi Join) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,18E-06, Avg Row Size: 64)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), WHERE:([LAS0084].[dbo].[Album].[Title]=N'Outbreak')) (Est Rows: 1, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 64)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId]),  WHERE:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId])) (Est Rows: 1, Est IO Cost: 0,0075694444, Est CPU Time: 0,0040103, Avg Row Size: 11)
 
    Query with redundancy:
-   -   |--Nested Loops(Left Semi Join)
-   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), WHERE:([LAS0084].[dbo].[Album].[Title]=N'Outbreak'))
-   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId]),  WHERE:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]))
+   -   |--Nested Loops(Left Semi Join) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,18E-06, Avg Row Size: 64)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), WHERE:([LAS0084].[dbo].[Album].[Title]=N'Outbreak')) (Est Rows: 1, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 64)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId]),  WHERE:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId])) (Est Rows: 1, Est IO Cost: 0,0075694444, Est CPU Time: 0,0040103, Avg Row Size: 11)
+
+Oracle (same plans):
+   Correct Query:
+   --------------------------------------------------------------------------------------------------------
+   | Id  | Operation                            | Name            | Rows  | Bytes | Cost (%CPU)| Time     |
+   --------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                     |                 |     1 |    32 |     4   (0)| 00:00:01 |
+   |*  1 |  FILTER                              |                 |       |       |            |          |
+   |   2 |   TABLE ACCESS BY INDEX ROWID BATCHED| ALBUM           |     1 |    32 |     2   (0)| 00:00:01 |
+   |*  3 |    INDEX RANGE SCAN                  | IDX_ALBUM_TITLE |     1 |       |     1   (0)| 00:00:01 |
+   |*  4 |   TABLE ACCESS FULL                  | TRACK           |     1 |     4 |     2   (0)| 00:00:01 |
+   --------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / ALBUM@SEL$1
+      3 - SEL$1 / ALBUM@SEL$1
+      4 - SEL$2 / TRACK@SEL$2
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter( EXISTS (SELECT 0 FROM "TRACK" "TRACK" WHERE "TRACKID" IS NOT NULL))
+      3 - access("ALBUM"."TITLE"='Outbreak')
+      4 - filter("TRACKID" IS NOT NULL)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "ALBUM"."ALBUMID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160], 
+          "ALBUM"."ARTISTID"[NUMBER,22]
+      2 - "ALBUM"."ALBUMID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160], 
+          "ALBUM"."ARTISTID"[NUMBER,22]
+      3 - "ALBUM".ROWID[ROWID,10], "ALBUM"."TITLE"[VARCHAR2,160]
+
+   Query with redundancy:
+   --------------------------------------------------------------------------------------------------------
+   | Id  | Operation                            | Name            | Rows  | Bytes | Cost (%CPU)| Time     |
+   --------------------------------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT                     |                 |     1 |    32 |     4   (0)| 00:00:01 |
+   |*  1 |  FILTER                              |                 |       |       |            |          |
+   |   2 |   TABLE ACCESS BY INDEX ROWID BATCHED| ALBUM           |     1 |    32 |     2   (0)| 00:00:01 |
+   |*  3 |    INDEX RANGE SCAN                  | IDX_ALBUM_TITLE |     1 |       |     1   (0)| 00:00:01 |
+   |*  4 |   TABLE ACCESS FULL                  | TRACK           |     1 |     4 |     2   (0)| 00:00:01 |
+   --------------------------------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / ALBUM@SEL$1
+      3 - SEL$1 / ALBUM@SEL$1
+      4 - SEL$2 / TRACK@SEL$2
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter( EXISTS (SELECT 0 FROM "TRACK" "TRACK" WHERE "TRACKID" IS NOT NULL))
+      3 - access("ALBUM"."TITLE"='Outbreak')
+      4 - filter("TRACKID" IS NOT NULL)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "ALBUM"."ALBUMID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160], 
+          "ALBUM"."ARTISTID"[NUMBER,22]
+      2 - "ALBUM"."ALBUMID"[NUMBER,22], "ALBUM"."TITLE"[VARCHAR2,160], 
+          "ALBUM"."ARTISTID"[NUMBER,22]
+      3 - "ALBUM".ROWID[ROWID,10], "ALBUM"."TITLE"[VARCHAR2,160]
 
 My SQL (same plans):
    Correct Query:
@@ -1378,4 +2944,471 @@ Postgre SQL (same plans):
    -         Filter: ((title)::text = 'Outbreak'::text)
    -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=0)
    -         Filter: (trackid IS NOT NULL)
+----------------------------------------------------------------------------------------------------
+Category: Case
+Source: Brass and Goldberg
+Reference: 2.6 Error 19
+Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT TrackId, 'Yes' AS IsUnique
+FROM Track
+
+Query with redundancy:
+SELECT TrackId,
+CASE
+    WHEN Count(Name) = 1 THEN 'Yes' ELSE 'No'
+END AS IsUnique
+FROM Track
+GROUP BY TrackId
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]='Yes')) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,0003503, Avg Row Size: 16)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId])) (Est Rows: 3503, Est IO Cost: 0,0075694444, Est CPU Time: 0,0040103, Avg Row Size: 11)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1003]=CASE WHEN CASE WHEN [LAS0084].[dbo].[Track].[Name] IS NULL THEN (0) ELSE (1) END=(1) THEN 'Yes' ELSE 'No' END)) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,0003503, Avg Row Size: 16)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_Name])) (Est Rows: 3503, Est IO Cost: 0,017199075, Est CPU Time: 0,0040103, Avg Row Size: 215)
+
+Oracle (different plans):
+   Correct Query:
+   ---------------------------------------------------------------------------
+   | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |       |  3503 | 14012 |    11   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / TRACK@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "TRACKID"[NUMBER,22]
+
+   Query with redundancy:
+   ----------------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |  3503 | 73563 |    12   (9)| 00:00:01 |
+   |   1 |  HASH GROUP BY     |       |  3503 | 73563 |    12   (9)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 73563 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "TRACKID"[NUMBER,22], COUNT("NAME")[22]
+      2 - (rowset=256) "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Track (index), key: IFK_TrackMediaTypeId comparing to None, rows: 3483 (filtered 100%), Using index
+
+   Query with redundancy:
+   - SIMPLE on Track (index), key: PRIMARY comparing to None, rows: 3483 (filtered 100%), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on track  (cost=0.00..80.03 rows=3503 width=36)
+
+   Query with redundancy:
+   - HashAggregate  (cost=97.54..141.33 rows=3503 width=36)
+   -   Group Key: trackid
+   -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=20)
+----------------------------------------------------------------------------------------------------
+Category: Case
+Source: Brass and Goldberg
+Reference: 2.4 Error 12, 4 Error 34
+Description: Using LIKE without wildcards.
+Correct query:
+SELECT FirstName, LastName,
+CASE
+WHEN Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Query with redundancy:
+SELECT FirstName, LastName,
+CASE
+    WHEN Country LIKE 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN [LAS0084].[dbo].[Customer].[Country]=N'USA' THEN 'Yes' ELSE 'No' END)) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 5,9E-06, Avg Row Size: 76)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer])) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 115)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN [LAS0084].[dbo].[Customer].[Country] like N'USA' THEN 'Yes' ELSE 'No' END)) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 5,9E-06, Avg Row Size: 76)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer])) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 115)
+
+Oracle (same plans):
+   Correct Query:
+   ------------------------------------------------------------------------------
+   | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |          |    59 |  1416 |     3   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| CUSTOMER |    59 |  1416 |     3   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "FIRSTNAME"[VARCHAR2,40], "LASTNAME"[VARCHAR2,20], 
+          "COUNTRY"[VARCHAR2,40]
+
+   Query with redundancy:
+   ------------------------------------------------------------------------------
+   | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |          |    59 |  1416 |     3   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| CUSTOMER |    59 |  1416 |     3   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "FIRSTNAME"[VARCHAR2,40], "LASTNAME"[VARCHAR2,20], 
+          "COUNTRY"[VARCHAR2,40]
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 100%), None
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=59 width=46)
+
+   Query with redundancy:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=59 width=46)
+----------------------------------------------------------------------------------------------------
+Category: Case
+Description: Conditioning attribute to be from any of its unique values.
+Correct query:
+SELECT Name, TrackId, 'Yes'
+FROM Track
+
+Query with redundancy:
+SELECT Name, TrackId, CASE
+    WHEN TrackId IN (SELECT TrackId FROM Track) THEN 'Yes' ELSE 'No'
+END
+FROM Track
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]='Yes')) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,0003503, Avg Row Size: 218)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IDX_Track_Name])) (Est Rows: 3503, Est IO Cost: 0,017199075, Est CPU Time: 0,0040103, Avg Row Size: 215)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1004]=CASE WHEN [Expr1005] THEN 'Yes' ELSE 'No' END)) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,0003503, Avg Row Size: 218)
+   -        |--Merge Join(Left Semi Join, MERGE:([LAS0084].[dbo].[Track].[TrackId])=([LAS0084].[dbo].[Track].[TrackId]), RESIDUAL:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId])) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,0241659, Avg Row Size: 216)
+   -             |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 215)
+   -             |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 11)
+
+Oracle (different plans):
+   Correct Query:
+   ---------------------------------------------------------------------------
+   | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| TRACK |  3503 | 73563 |    11   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / TRACK@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
+
+   Query with redundancy:
+   ---------------------------------------------------------------------------
+   | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ---------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |       |  3503 | 73563 | 19404   (1)| 00:00:01 |
+   |*  1 |  TABLE ACCESS FULL| TRACK |     1 |     4 |    11   (0)| 00:00:01 |
+   |   2 |  TABLE ACCESS FULL| TRACK |  3503 | 73563 |    11   (0)| 00:00:01 |
+   ---------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$2 / TRACK@SEL$2
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - filter("TRACKID"=:B1)
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      2 - "TRACKID"[NUMBER,22], "NAME"[VARCHAR2,200]
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Track (index), key: IDX_Track_Name comparing to None, rows: 3483 (filtered 100%), Using index
+
+   Query with redundancy:
+   - PRIMARY on Track (index), key: IDX_Track_Name comparing to None, rows: 3483 (filtered 100%), Using index
+   - SUBQUERY on Track (index), key: IFK_TrackMediaTypeId comparing to None, rows: 3483 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on track  (cost=0.00..80.03 rows=3503 width=52)
+
+   Query with redundancy:
+   - Seq Scan on track  (cost=88.79..177.57 rows=3503 width=52)
+   -   SubPlan 1
+   -     ->  Seq Scan on track track_1  (cost=0.00..80.03 rows=3503 width=4)
+----------------------------------------------------------------------------------------------------
+Category: Case
+Source: Brass and Goldberg
+Reference: 2.4. Error 8
+Description: Duplicated (redundant) conditions with AND operator.
+Correct query:
+SELECT FirstName, LastName,
+CASE
+    WHEN Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Query with redundancy:
+SELECT FirstName, LastName,
+CASE
+    WHEN Country = 'USA' AND Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN [LAS0084].[dbo].[Customer].[Country]=N'USA' THEN 'Yes' ELSE 'No' END)) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 5,9E-06, Avg Row Size: 76)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer])) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 115)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN [LAS0084].[dbo].[Customer].[Country]=N'USA' THEN 'Yes' ELSE 'No' END)) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 5,9E-06, Avg Row Size: 76)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer])) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 115)
+
+Oracle (same plans):
+   Correct Query:
+   ------------------------------------------------------------------------------
+   | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |          |    59 |  1416 |     3   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| CUSTOMER |    59 |  1416 |     3   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "FIRSTNAME"[VARCHAR2,40], "LASTNAME"[VARCHAR2,20], 
+          "COUNTRY"[VARCHAR2,40]
+
+   Query with redundancy:
+   ------------------------------------------------------------------------------
+   | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT  |          |    59 |  1416 |     3   (0)| 00:00:01 |
+   |   1 |  TABLE ACCESS FULL| CUSTOMER |    59 |  1416 |     3   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1 / CUSTOMER@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - "FIRSTNAME"[VARCHAR2,40], "LASTNAME"[VARCHAR2,20], 
+          "COUNTRY"[VARCHAR2,40]
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 100%), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=59 width=46)
+
+   Query with redundancy:
+   - Seq Scan on customer  (cost=0.00..2.88 rows=59 width=46)
+----------------------------------------------------------------------------------------------------
+Category: Window
+Description: Calculating average value of category (AvgAlbumTrackLength) for each row (track) instead of calculating it for all rows at once.
+Correct query:
+SELECT
+    t1.Name,
+    t1.Milliseconds,
+    a.AvgAlbumTrackLength
+FROM
+    track AS t1
+JOIN (
+    SELECT
+        t2.AlbumId,
+        AVG(t2.Milliseconds) AS AvgAlbumTrackLength
+    FROM
+        track AS t2
+    GROUP BY
+        AlbumId
+) AS a ON t1.AlbumId = a.AlbumId
+
+Query with redundancy:
+SELECT Name, Milliseconds, AVG(Milliseconds) OVER (PARTITION BY AlbumId) AS AvgAlbumTrackLength
+FROM
+track
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Hash Match(Inner Join, HASH:([t2].[AlbumId])=([t1].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Track].[AlbumId] as [t2].[AlbumId]=[LAS0084].[dbo].[Track].[AlbumId] as [t1].[AlbumId])) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,050243046, Avg Row Size: 219)
+   -        |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN [Expr1007]=(0) THEN NULL ELSE [Expr1008]/CONVERT_IMPLICIT(int,[Expr1007],0) END)) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 15)
+   -        |    |--Hash Match(Aggregate, HASH:([t2].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Track].[AlbumId] as [t2].[AlbumId] = [LAS0084].[dbo].[Track].[AlbumId] as [t2].[AlbumId]) DEFINE:([Expr1007]=COUNT(*), [Expr1008]=SUM([LAS0084].[dbo].[Track].[Milliseconds] as [t2].[Milliseconds]))) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0,04728991, Avg Row Size: 15)
+   -        |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t2])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 15)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t1])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 219)
+
+   Query with redundancy:
+   -   |--Nested Loops(Inner Join) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,053313382, Avg Row Size: 219)
+   -        |--Table Spool (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 219)
+   -        |    |--Segment (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,006923816, Avg Row Size: 219)
+   -        |         |--Sort(ORDER BY:([LAS0084].[dbo].[Track].[AlbumId] ASC)) (Est Rows: 3503, Est IO Cost: 0,011261261, Est CPU Time: 0,06444341, Avg Row Size: 219)
+   -        |              |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 219)
+   -        |--Nested Loops(Inner Join, WHERE:((1))) (Est Rows: 10,0951, Est IO Cost: 0, Est CPU Time: 0,0006923816, Avg Row Size: 219)
+   -             |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN [Expr1004]=(0) THEN NULL ELSE [Expr1005]/CONVERT_IMPLICIT(int,[Expr1004],0) END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 6,923816E-05, Avg Row Size: 219)
+   -             |    |--Stream Aggregate(DEFINE:([Expr1004]=Count(*), [Expr1005]=SUM([LAS0084].[dbo].[Track].[Milliseconds]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0,0006923816, Avg Row Size: 219)
+   -             |         |--Table Spool (Est Rows: 10,0951, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 219)
+   -             |--Table Spool (Est Rows: 10,0951, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 219)
+
+Oracle (different plans):
+   Correct Query:
+   ------------------------------------------------------------------------------
+   | Id  | Operation            | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ------------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT     |       |  4672 |   241K|    23   (5)| 00:00:01 |
+   |*  1 |  HASH JOIN           |       |  4672 |   241K|    23   (5)| 00:00:01 |
+   |   2 |   VIEW               |       |   347 |  9022 |    12   (9)| 00:00:01 |
+   |   3 |    HASH GROUP BY     |       |   347 |  3470 |    12   (9)| 00:00:01 |
+   |   4 |     TABLE ACCESS FULL| TRACK |  3503 | 35030 |    11   (0)| 00:00:01 |
+   |   5 |   TABLE ACCESS FULL  | TRACK |  3503 | 94581 |    11   (0)| 00:00:01 |
+   ------------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$F1D6E378
+      2 - SEL$2        / A@SEL$1
+      3 - SEL$2       
+      4 - SEL$2        / T2@SEL$2
+      5 - SEL$F1D6E378 / T1@SEL$1
+    
+   Predicate Information (identified by operation id):
+   ---------------------------------------------------
+    
+      1 - access("T1"."ALBUMID"="A"."ALBUMID")
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "A"."AVGALBUMTRACKLENGTH"[NUMBER,22], 
+          "T1"."NAME"[VARCHAR2,200], "T1"."MILLISECONDS"[NUMBER,22]
+      2 - (rowset=256) "A"."ALBUMID"[NUMBER,22], 
+          "A"."AVGALBUMTRACKLENGTH"[NUMBER,22]
+      3 - (#keys=1; rowset=256) "ALBUMID"[NUMBER,22], 
+          COUNT("T2"."MILLISECONDS")[22], SUM("T2"."MILLISECONDS")[22]
+      4 - (rowset=256) "ALBUMID"[NUMBER,22], "T2"."MILLISECONDS"[NUMBER,22]
+      5 - (rowset=256) "T1"."NAME"[VARCHAR2,200], 
+          "T1"."ALBUMID"[NUMBER,22], "T1"."MILLISECONDS"[NUMBER,22]
+
+   Query with redundancy:
+   ----------------------------------------------------------------------------
+   | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   ----------------------------------------------------------------------------
+   |   0 | SELECT STATEMENT   |       |  3503 | 94581 |    12   (9)| 00:00:01 |
+   |   1 |  WINDOW SORT       |       |  3503 | 94581 |    12   (9)| 00:00:01 |
+   |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 94581 |    11   (0)| 00:00:01 |
+   ----------------------------------------------------------------------------
+    
+   Query Block Name / Object Alias (identified by operation id):
+   -------------------------------------------------------------
+    
+      1 - SEL$1
+      2 - SEL$1 / TRACK@SEL$1
+    
+   Column Projection Information (identified by operation id):
+   -----------------------------------------------------------
+    
+      1 - (#keys=1; rowset=256) "ALBUMID"[NUMBER,22], 
+          "NAME"[VARCHAR2,200], "MILLISECONDS"[NUMBER,22], AVG("MILLISECONDS") 
+          OVER ( PARTITION BY "ALBUMID")[22]
+      2 - (rowset=256) "NAME"[VARCHAR2,200], "ALBUMID"[NUMBER,22], 
+          "MILLISECONDS"[NUMBER,22]
+
+My SQL (different plans):
+   Correct Query:
+   - PRIMARY on t1 (ALL), key: None comparing to None, rows: 3483 (filtered 100%), Using where
+   - PRIMARY on <derived2> (ref), key: <auto_key0> comparing to las0084.t1.AlbumId, rows: 10 (filtered 100%), None
+   - DERIVED on t2 (index), key: IFK_TrackAlbumId comparing to None, rows: 3483 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on track (ALL), key: None comparing to None, rows: 3483 (filtered 100%), Using filesort
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Hash Join  (cost=109.69..199.03 rows=3503 width=52)
+   -   Hash Cond: (t1.albumid = a.albumid)
+   -   ->  Seq Scan on track t1  (cost=0.00..80.03 rows=3503 width=24)
+   -   ->  Hash  (cost=105.35..105.35 rows=347 width=36)
+   -         ->  Subquery Scan on a  (cost=97.54..105.35 rows=347 width=36)
+   -               ->  HashAggregate  (cost=97.54..101.88 rows=347 width=36)
+   -                     Group Key: t2.albumid
+   -                     ->  Seq Scan on track t2  (cost=0.00..80.03 rows=3503 width=8)
+
+   Query with redundancy:
+   - WindowAgg  (cost=0.28..206.91 rows=3503 width=56)
+   -   ->  Index Scan using track_album_id_idx on track  (cost=0.28..154.36 rows=3503 width=24)
 ----------------------------------------------------------------------------------------------------

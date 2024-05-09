@@ -152,31 +152,31 @@ namespace RedundancyBenchmarkSQL
                 {
                     switch(version)
                     {
-                        case "error":
+                        case "redundancy":
                             redundancyQuery += line + "\n";
                             break;
                         case "correct":
                             correctQuery += line + "\n";
                             break;
-                        case "sqlserver error":
+                        case "sqlserver redundancy":
                             sqlserverRedundancyQuery += line + "\n";
                             break;
                         case "sqlserver correct":
                             sqlserverCorrectQuery += line + "\n";
                             break;
-                        case "oracle error":
+                        case "oracle redundancy":
                             oracleRedundancyQuery += line + "\n";
                             break;
                         case "oracle correct":
                             oracleCorrectQuery += line + "\n";
                             break;
-                        case "postgre error":
+                        case "postgre redundancy":
                             postgreRedundancyQuery += line + "\n";
                             break;
                         case "postgre correct":
                             postgreCorrectQuery += line + "\n";
                             break;
-                        case "mysql error":
+                        case "mysql redundancy":
                             mysqlRedundancyQuery += line + "\n";
                             break;
                         case "mysql correct":

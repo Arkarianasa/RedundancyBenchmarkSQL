@@ -4,7 +4,7 @@
 -- Source: Brass and Goldberg
 -- Reference: 2. Unnecessary complications (1)
 -- Description: We already know the attribute country, there is no need to have it in the SELECT.
--- Version: error
+-- Version: redundancy
 SELECT FirstName, LastName, Country
 FROM Customer
 WHERE Country = 'Czech Republic'
@@ -21,13 +21,13 @@ WHERE Country = 'Czech Republic'
 -- Source: Brass and Goldberg
 -- Reference: 2.2. Error 2
 -- Description: Using distinct on already unique values.
--- Version: error
-SELECT DISTINCT(MediaTypeId)
-FROM MediaType
+-- Version: redundancy
+SELECT DISTINCT(AlbumId)
+FROM Album
 
 -- Version: correct
-SELECT MediaTypeId
-FROM MediaType
+SELECT AlbumId
+FROM Album
 -- end
 
 ----------------------------------------
@@ -36,7 +36,7 @@ FROM MediaType
 -- Source: Brass and Goldberg
 -- Reference: 2.4. Error 8
 -- Description: Duplicated (redundant) conditions with OR operator.
--- Version: error
+-- Version: redundancy
 SELECT *
 FROM Customer
 WHERE Country = 'USA' OR Country = 'USA'
@@ -50,21 +50,21 @@ WHERE Country = 'USA'
 -- Source: Brass and Goldberg
 -- Reference: 2.4. Error 8
 -- Description: Duplicated (redundant) conditions with AND operator.
--- Version: error
+-- Version: redundancy
 SELECT *
-FROM Invoice
-WHERE BillingCity = 'Oslo' AND BillingCity = 'Oslo'
+FROM Customer
+WHERE Country = 'USA' AND Country = 'USA'
 
 -- Version: correct
 SELECT *
-FROM Invoice
-WHERE BillingCity = 'Oslo'
+FROM Customer
+WHERE Country = 'USA'
 -- end
 
 -- Source: Brass and Goldberg
 -- Reference: 1. Introduction
 -- Description: Mutually exclusive conditions.
--- Version: error
+-- Version: redundancy
 SELECT *
 FROM Album
 WHERE Title = 'Fireball' AND Title = 'Outbreak'
@@ -78,7 +78,7 @@ WHERE 1 = 0
 -- Source: Brass and Goldberg
 -- Reference: 2.4. Error 8
 -- Description: Mutually exclusive conditions.
--- Version: error
+-- Version: redundancy
 SELECT Name
 FROM Track
 WHERE UnitPrice < 1 AND
@@ -93,20 +93,20 @@ WHERE 1 = 0
 -- Source: Brass and Goldberg
 -- Reference: 2.4. Error 8
 -- Description: Using unnecessary conditions that were already fulfilled by another condition.
--- Version: error
+-- Version: redundancy
 SELECT *
 FROM Track
-WHERE Milliseconds > 300000 AND
-      Milliseconds > 200000
+WHERE UnitPrice > 0.5 AND
+      UnitPrice > 1
 
 -- Version: correct
 SELECT *
 FROM Track
-WHERE Milliseconds > 300000
+WHERE UnitPrice > 1
 -- end
 
 -- Description: Duplicate values in the IN list.
--- Version: error
+-- Version: redundancy
 SELECT *
 FROM Track
 WHERE GenreId IN (1, 1, 2, 3, 3)
@@ -118,7 +118,7 @@ WHERE GenreId IN (1, 2, 3)
 -- end
 
 -- Description: Conditioning attribute to be from any of its unique values.
--- Version: error
+-- Version: redundancy
 SELECT *
 FROM InvoiceLine
 WHERE TrackId IN (SELECT TrackId FROM InvoiceLine)
@@ -131,7 +131,7 @@ FROM InvoiceLine
 -- Source: Brass and Goldberg
 -- Reference: 2.4 Error 11
 -- Description: Unnecessary condition, comparing name to "anything".
--- Version: error
+-- Version: redundancy
 SELECT TrackId, Name
 FROM Track
 WHERE Name LIKE '%'
@@ -144,7 +144,7 @@ FROM Track
 -- Source: Brass and Goldberg
 -- Reference: 2.4 Error 12, 4 Error 34
 -- Description: Using LIKE without wildcards.
--- Version: error
+-- Version: redundancy
 SELECT FirstName, LastName
 FROM Customer
 WHERE Country LIKE 'USA'
@@ -158,24 +158,24 @@ WHERE Country = 'USA'
 -- Source: Brass and Goldberg
 -- Reference: 2.4 Error 14
 -- Description: Unnecessary IN/EXISTS condition that could be replaced by simple comparison.
--- Version: error
+-- Version: redundancy
 SELECT *
-FROM Invoice
-WHERE BillingCountry NOT IN
-(SELECT BillingCountry
- FROM Invoice
- WHERE BillingCountry = 'Germany')
+FROM Customer
+WHERE Country NOT IN
+(SELECT Country
+ FROM Customer
+ WHERE Country = 'USA')
 
 -- Version: correct
 SELECT *
-FROM Invoice
-WHERE BillingCountry != 'Germany'
+FROM Customer
+WHERE Country != 'USA'
 -- end
 
 -- Source: Brass and Goldberg
 -- Reference: 2.4 Error 13
 -- Description: Unnecessarily complicated SELECT in EXISTS-subquery. (using unnecessarily DISTINCT)
--- Version: error
+-- Version: redundancy
 SELECT *
 FROM Album
 WHERE EXISTS (
@@ -195,7 +195,7 @@ WHERE EXISTS (
 -- end
 
 -- Description: Unnecessarily complicated JOIN with DISTINCT that can be replaced by simpler EXISTS.
--- Version: error
+-- Version: redundancy
 SELECT DISTINCT Album.AlbumId, Album.Title
 FROM Album
 JOIN Track ON Album.AlbumId = Track.AlbumId
@@ -220,7 +220,7 @@ WHERE EXISTS (
 -- Source: Brass and Goldberg
 -- Reference: 2.3. Error 6
 -- Description: Using unnecessary JOIN if we only use attributes from one table.
--- Version: error
+-- Version: redundancy
 SELECT Invoice.InvoiceId, Invoice.Total
 FROM Invoice
 JOIN Customer ON Invoice.CustomerId = Customer.CustomerId
@@ -235,7 +235,7 @@ WHERE Invoice.Total < 1
 -- Source: Brass and Goldberg
 -- Reference: 2.2 Error 4
 -- Description: JOINing table on itself that just duplicates output columns.
--- Version: error
+-- Version: redundancy
 SELECT *
 FROM Genre as g1
 JOIN Genre as g2 ON g1.GenreId=g2.GenreId
@@ -244,7 +244,7 @@ JOIN Genre as g2 ON g1.GenreId=g2.GenreId
 SELECT GenreId, Name, GenreId, Name
 FROM Genre
 
--- Version: oracle error
+-- Version: oracle redundancy
 SELECT *
 FROM Genre g1
 JOIN Genre g2 ON g1.GenreId=g2.GenreId
@@ -257,7 +257,7 @@ FROM Genre
 -- Source: Brass and Goldberg
 -- Reference: 2.8 Error 23
 -- Description: Unnecessary UNION.
--- Version: error
+-- Version: redundancy
 SELECT TrackId, Name
 FROM Track
 WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Rock')
@@ -278,7 +278,7 @@ WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Rock')
 -- Source: Brass and Goldberg
 -- Reference: 3 Error 26
 -- Description: UNION that could be replaced by UNION ALL.
--- Version: error
+-- Version: redundancy
 SELECT TrackId, Name
 FROM Track
 WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Classical')
@@ -304,7 +304,7 @@ WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Hip Hop/Rap')
 -- Source: Brass and Goldberg
 -- Reference: 4 Error 35, 36
 -- Description: Using outer join that can be replaced by inner join. All tuples generated by the outer join are eliminated by the WHERE-condition.
--- Version: error
+-- Version: redundancy
 SELECT t.TrackId, t.Name, il.InvoiceLineId
 FROM Track t LEFT OUTER JOIN InvoiceLine il ON t.TrackId = il.TrackId
 WHERE il.InvoiceLineId IS NOT NULL
@@ -318,7 +318,7 @@ INNER JOIN InvoiceLine il ON t.TrackId = il.TrackId
 -- Source: Brass and Goldberg
 -- Reference: 4 Error 35
 -- Description: Condition on left table in left outer join that excludes all possible join partners.
--- Version: error
+-- Version: redundancy
 SELECT t.TrackId, t.Name, il.InvoiceLineId
 FROM Track t
 LEFT OUTER JOIN InvoiceLine il ON t.TrackId = il.TrackId
@@ -337,7 +337,7 @@ WHERE il.InvoiceLineId = 52
 -- Source: Brass and Goldberg
 -- Reference: 2.5 Error 17
 -- Description: Applying COUNT() to a column that is unique.
--- Version: error
+-- Version: redundancy
 SELECT Count(TrackId)
 FROM Track
 
@@ -349,7 +349,7 @@ FROM Track
 -- Source: Brass and Goldberg
 -- Reference: 2.5 Error 15, 2.6 Error 22
 -- Description: Unnecessary single distinct input value aggregations that could be replaced by SELECT DISTINCT.
--- Version: error
+-- Version: redundancy
 SELECT MAX(UnitPrice)
 FROM Track
 GROUP BY UnitPrice
@@ -362,13 +362,59 @@ FROM Track
 -- Source: Brass and Goldberg
 -- Reference: 2.5 Error 16
 -- Description: Unnecessary DISTINCT in MIN / MAX aggregations.
--- Version: error
-SELECT MAX(DISTINCT Milliseconds)
+-- Version: redundancy
+SELECT MAX(DISTINCT UnitPrice)
 FROM Track
 
 -- Version: correct
-SELECT MAX(Milliseconds)
+SELECT MAX(UnitPrice)
 FROM Track
+-- end
+
+-- Source: null
+-- Reference: null
+-- Description: Unnecessary replacing GROUP BY in MIN / MAX aggregations with subquery.
+-- Version: redundancy
+SELECT DISTINCT i1.CustomerId, (
+SELECT SUM(i2.Total)
+FROM Invoice AS i2
+WHERE i1.CustomerId = i2.CustomerId
+)
+FROM Invoice AS i1
+
+-- Version: correct
+SELECT CustomerId, SUM(Total)
+FROM Invoice
+GROUP BY CustomerId
+
+-- Version: oracle redundancy
+SELECT DISTINCT i1.CustomerId, (
+SELECT SUM(i2.Total)
+FROM Invoice i2
+WHERE i1.CustomerId = i2.CustomerId
+)
+FROM Invoice i1
+
+-- Version: oracle correct
+SELECT CustomerId, SUM(Total)
+FROM Invoice
+GROUP BY CustomerId
+-- end
+
+-- Source: Brass and Goldberg
+-- Reference: 2.6 Error 19
+-- Description: Using aggregation in subquery on id is unnecessary and redundant because there is always only one tuple per id.
+-- Version: redundancy
+SELECT Invoice.InvoiceId, (
+SELECT COUNT(*)
+FROM Customer
+WHERE Customer.CustomerId = Invoice.CustomerId
+)
+FROM Invoice
+
+-- Version: correct
+SELECT Invoice.InvoiceId, 1
+FROM Invoice
 -- end
 
 ----------------------------------------
@@ -376,8 +422,8 @@ FROM Track
 ----------------------------------------
 -- Source: Brass and Goldberg
 -- Reference: 2.6 Error 19
--- Description: Using group by on id is unnecessary and redundant because there is always only one tuple per id.
--- Version: error
+-- Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
+-- Version: redundancy
 SELECT ArtistId, COUNT(*)
 FROM Artist
 GROUP BY ArtistId
@@ -390,36 +436,142 @@ FROM Artist
 -- Source: Brass and Goldberg
 -- Reference: 2.6 Error 18
 -- Description: Unnecessary GROUP BY in EXISTS subquery.
--- Version: error
-SELECT * 
-FROM Artist
+-- Version: redundancy
+SELECT *
+FROM Album
 WHERE EXISTS (
-    SELECT 1 
-    FROM Album
-    WHERE ArtistId = Artist.ArtistId AND Artist.Name = 'AC/DC'
-    GROUP BY ArtistId
+    SELECT 1
+    FROM Track
+    WHERE TrackId = Track.TrackId AND Album.Title = 'Outbreak'
+    GROUP BY TrackId
 )
 
 -- Version: correct
-SELECT * 
-FROM Artist
+SELECT *
+FROM Album
 WHERE EXISTS (
-    SELECT 1 
-    FROM Album
-    WHERE ArtistId = Artist.ArtistId AND Artist.Name = 'AC/DC'
+    SELECT 1
+    FROM Track
+    WHERE TrackId = Track.TrackId AND Album.Title = 'Outbreak'
 )
 -- end
 
----------------- Having ----------------
+
+----------------------------------------
+-- Category: Case
 ----------------------------------------
 -- Source: Brass and Goldberg
--- Reference: 2.9 Error 25
--- Description: Doing the join condition under HAVING instead of in WHERE is possible, but has awful performance.
--- Version: error
-SELECT Invoice.BillingCity, COUNT(*)
-FROM Invoice, InvoiceLine
-GROUP BY Invoice.BillingCity, Invoice.InvoiceId
-HAVING Invoice.InvoiceId = InvoiceLine.InvoiceId
+-- Reference: 2.6 Error 19
+-- Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
+-- Version: redundancy
+SELECT TrackId,
+CASE
+    WHEN Count(Name) = 1 THEN 'Yes' ELSE 'No'
+END AS IsUnique
+FROM Track
+GROUP BY TrackId
+
+-- Version: correct
+SELECT TrackId, 'Yes' AS IsUnique
+FROM Track
+-- end
+
+-- Source: Brass and Goldberg
+-- Reference: 2.4 Error 12, 4 Error 34
+-- Description: Using LIKE without wildcards.
+-- Version: redundancy
+SELECT FirstName, LastName,
+CASE
+    WHEN Country LIKE 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+-- Version: correct
+SELECT FirstName, LastName,
+CASE
+WHEN Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+-- end
+
+-- Description: Conditioning attribute to be from any of its unique values.
+-- Version: redundancy
+SELECT Name, TrackId, CASE
+    WHEN TrackId IN (SELECT TrackId FROM Track) THEN 'Yes' ELSE 'No'
+END
+FROM Track
+
+-- Version: correct
+SELECT Name, TrackId, 'Yes'
+FROM Track
+-- end
+
+-- Source: Brass and Goldberg
+-- Reference: 2.4. Error 8
+-- Description: Duplicated (redundant) conditions with OR operator.
+-- Version: redundancy
+SELECT FirstName, LastName,
+CASE
+    WHEN Country = 'USA' OR Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+-- Version: correct
+SELECT FirstName, LastName,
+CASE
+    WHEN Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+-- end
+
+----------------------------------------
+-- Category: Window
+----------------------------------------
+-- Description: Calculating average value of category (AvgAlbumTrackLength) for each row (track) instead of calculating it for all rows at once.
+-- Version: redundancy
+SELECT Name, Milliseconds, AVG(Milliseconds) OVER (PARTITION BY AlbumId) AS AvgAlbumTrackLength
+FROM
+track
+
+-- Version: correct
+SELECT
+    t1.Name,
+    t1.Milliseconds,
+    a.AvgAlbumTrackLength
+FROM
+    track AS t1
+JOIN (
+    SELECT
+        t2.AlbumId,
+        AVG(t2.Milliseconds) AS AvgAlbumTrackLength
+    FROM
+        track AS t2
+    GROUP BY
+        AlbumId
+) AS a ON t1.AlbumId = a.AlbumId
+
+-- Version: oracle redundancy
+SELECT Name, Milliseconds, AVG(Milliseconds) OVER (PARTITION BY AlbumId) AS AvgAlbumTrackLength
+FROM
+track
+
+-- Version: oracle correct
+SELECT
+    t1.Name,
+    t1.Milliseconds,
+    a.AvgAlbumTrackLength
+FROM
+    track t1
+JOIN (
+    SELECT
+        t2.AlbumId,
+        AVG(t2.Milliseconds) AS AvgAlbumTrackLength
+    FROM
+        track t2
+    GROUP BY
+        AlbumId
+) a ON t1.AlbumId = a.AlbumId
+-- end
 
 /*
 Semantic errors that can cause redundant parts in the SQL query execution plan:

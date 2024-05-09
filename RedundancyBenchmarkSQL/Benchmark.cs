@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
@@ -193,7 +194,11 @@ namespace RedundancyBenchmarkSQL
                         {
                             if (counter++ > 0)
                             {
-                                string planLine = reader.GetString(0);
+                                string planLine = reader.GetString(0)
+                                                + " (Est Rows: " + reader.GetFloat(8)
+                                                + ", Est IO Cost: " + reader.GetFloat(9)
+                                                + ", Est CPU Time: " + reader.GetFloat(10)
+                                                + ", Avg Row Size: " + reader.GetInt32(11) + ")";
                                 planLines.Add(planLine);
                             }
                         }
@@ -296,7 +301,7 @@ namespace RedundancyBenchmarkSQL
                 // Query the PLAN_TABLE to retrieve the execution plan
                 string planTableQuery = @"
                 SELECT PLAN_TABLE_OUTPUT 
-                FROM TABLE(DBMS_XPLAN.DISPLAY('PLAN_TABLE', null, 'BASIC'))";
+                FROM TABLE(DBMS_XPLAN.DISPLAY('PLAN_TABLE', null, 'ALL'))";
 
                 using (OracleCommand cmd = new OracleCommand(planTableQuery, connection))
                 {
@@ -441,19 +446,32 @@ namespace RedundancyBenchmarkSQL
             using (var connection = new OracleConnection(connectionString))
             {
                 connection.Open();
-                var command = new OracleCommand
-                {
-                    Connection = connection
-                };
                 var transaction = connection.BeginTransaction();
-                command.Transaction = transaction;
 
                 try
                 {
-                    string scriptContent = File.ReadAllText(scriptPath);
-                    command.CommandText = scriptContent;
-                    command.ExecuteNonQuery();
-                    transaction.Commit();
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.Transaction = transaction;
+
+                        string[] scriptLines = File.ReadAllLines(scriptPath);
+                        foreach (var line in scriptLines)
+                        {
+                            try
+                            {
+                                command.CommandText = line;
+                                command.ExecuteNonQuery();
+                            }
+                            catch (Exception ex)
+                            {
+                                transaction.Rollback();
+                                Console.WriteLine("Failed to execute script line: " + ex.Message);
+                                throw; // This will allow for further upstack handling of the exception if necessary
+                            }
+                        }
+
+                        transaction.Commit();
+                    }
                 }
                 catch (Exception ex)
                 {
