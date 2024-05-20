@@ -1,0 +1,1827 @@
+Benchmark (loose) without indexes from: 20.05.2024 20:59:12
+
+Benchmark Results (loose):
+Microsoft SQL Server: 17 / 30
+Oracle: 17 / 30
+My SQL: 14 / 30
+Postgre SQL: 12 / 30
+
+----------------------------------------------------------------------------------------------------
+Redundancy Benchmark (loose) for 30 queries:
+----------------------------------------------------------------------------------------------------
+Category: Attributes
+Source: Semantic errors in SQL queries
+Reference: 2. Unnecessary complications (1)
+Description: We already know the attribute country, there is no need to have it in the SELECT.
+Correct query:
+SELECT FirstName, LastName, 'Czech Republic' AS Country
+FROM Customer
+WHERE Country = 'Czech Republic'
+
+Query with redundancy:
+SELECT FirstName, LastName, Country
+FROM Customer
+WHERE Country = 'Czech Republic'
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Compute Scalar on [dbo].[Customer]
+   - Clustered Index Scan on [dbo].[Customer]
+
+   Query with redundancy:
+   - Clustered Index Scan on [dbo].[Customer]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), Using where
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), Using where
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on customer
+   - Filter
+
+   Query with redundancy:
+   - Seq Scan on customer
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Distinct
+Source: Semantic errors in SQL queries
+Reference: 2.2. Error 2
+Description: Using distinct on already unique values.
+Correct query:
+SELECT AlbumId
+FROM Album
+
+Query with redundancy:
+SELECT DISTINCT(AlbumId)
+FROM Album
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Index Scan on [dbo].[Album]
+
+   Query with redundancy:
+   - Index Scan on [dbo].[Album]
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on ALBUM
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - HASH UNIQUE on 
+   - TABLE ACCESS FULL on ALBUM
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Album (index), Using index
+
+   Query with redundancy:
+   - SIMPLE on Album (index), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on album
+
+   Query with redundancy:
+   - HashAggregate
+   -   Group Key: albumid
+   - ->  Seq Scan on album
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4. Error 8
+Description: Duplicated (redundant) conditions with OR operator.
+Correct query:
+SELECT *
+FROM Customer
+WHERE Country = 'USA'
+
+Query with redundancy:
+SELECT *
+FROM Customer
+WHERE Country = 'USA' OR Country = 'USA'
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Clustered Index Scan on [dbo].[Customer]
+
+   Query with redundancy:
+   - Clustered Index Scan on [dbo].[Customer]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), Using where
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), Using where
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on customer
+   - Filter
+
+   Query with redundancy:
+   - Seq Scan on customer
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4. Error 8
+Description: Duplicated (redundant) conditions with AND operator.
+Correct query:
+SELECT *
+FROM Customer
+WHERE Country = 'USA'
+
+Query with redundancy:
+SELECT *
+FROM Customer
+WHERE Country = 'USA' AND Country = 'USA'
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Clustered Index Scan on [dbo].[Customer]
+
+   Query with redundancy:
+   - Clustered Index Scan on [dbo].[Customer]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), Using where
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), Using where
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on customer
+   - Filter
+
+   Query with redundancy:
+   - Seq Scan on customer
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 1. Introduction
+Description: Mutually exclusive conditions.
+Correct query:
+SELECT *
+FROM Album
+WHERE 1 = 0
+
+Query with redundancy:
+SELECT *
+FROM Album
+WHERE Title = 'Fireball' AND Title = 'Outbreak'
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Constant Scan
+
+   Query with redundancy:
+   - Constant Scan
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - FILTER on 
+   - TABLE ACCESS FULL on ALBUM
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - FILTER on 
+   - TABLE ACCESS FULL on ALBUM
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Unknown (Unknown), Impossible WHERE
+
+   Query with redundancy:
+   - SIMPLE on Unknown (Unknown), Impossible WHERE
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Result
+   -   One-Time Filter: false
+
+   Query with redundancy:
+   - Result
+   -   One-Time Filter: false
+   - ->  Seq Scan on album
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4. Error 8
+Description: Mutually exclusive conditions.
+Correct query:
+SELECT Name
+FROM Track
+WHERE 1 = 0
+
+Query with redundancy:
+SELECT Name
+FROM Track
+WHERE UnitPrice < 1 AND
+      UnitPrice > 1.5
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Constant Scan
+
+   Query with redundancy:
+   - Constant Scan
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - FILTER on 
+   - TABLE ACCESS FULL on TRACK
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - FILTER on 
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Unknown (Unknown), Impossible WHERE
+
+   Query with redundancy:
+   - SIMPLE on Track (ALL), Using where
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Result
+   -   One-Time Filter: false
+
+   Query with redundancy:
+   - Seq Scan on track
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4. Error 8
+Description: Using unnecessary conditions that were already fulfilled by another condition.
+Correct query:
+SELECT *
+FROM Track
+WHERE UnitPrice > 1
+
+Query with redundancy:
+SELECT *
+FROM Track
+WHERE UnitPrice > 0.5 AND
+      UnitPrice > 1
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Clustered Index Scan on [dbo].[Track]
+
+   Query with redundancy:
+   - Clustered Index Scan on [dbo].[Track]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on TRACK
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Track (ALL), Using where
+
+   Query with redundancy:
+   - SIMPLE on Track (ALL), Using where
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on track
+   - Filter
+
+   Query with redundancy:
+   - Seq Scan on track
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Description: Duplicate values in the IN list.
+Correct query:
+SELECT *
+FROM Track
+WHERE GenreId IN (1, 2, 3)
+
+Query with redundancy:
+SELECT *
+FROM Track
+WHERE GenreId IN (1, 1, 2, 3, 3)
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Clustered Index Scan on [dbo].[Track]
+
+   Query with redundancy:
+   - Clustered Index Scan on [dbo].[Track]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on TRACK
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Track (ALL), Using where
+
+   Query with redundancy:
+   - SIMPLE on Track (ALL), Using where
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on track
+   - Filter
+
+   Query with redundancy:
+   - Seq Scan on track
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Description: Conditioning attribute to be from any of its unique values.
+Correct query:
+SELECT *
+FROM InvoiceLine
+
+Query with redundancy:
+SELECT *
+FROM InvoiceLine
+WHERE TrackId IN (SELECT TrackId FROM InvoiceLine)
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Clustered Index Scan on [dbo].[InvoiceLine]
+
+   Query with redundancy:
+   - Hash Match on [dbo].[InvoiceLine]
+   - Stream Aggregate on [dbo].[InvoiceLine]
+   - Index Scan on [dbo].[InvoiceLine]
+   - Clustered Index Scan on [dbo].[InvoiceLine]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on INVOICELINE
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on INVOICELINE
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on InvoiceLine (ALL), None
+
+   Query with redundancy:
+   - SIMPLE on InvoiceLine (ALL), None
+   - SIMPLE on <subquery2> (eq_ref), None
+   - MATERIALIZED on InvoiceLine (index), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on invoiceline
+
+   Query with redundancy:
+   - Hash Semi Join
+   - Hash Cond
+   - ->  Seq Scan on invoiceline
+   - ->  Hash
+   - ->  Seq Scan on invoiceline invoiceline_1
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4 Error 11
+Description: Unnecessary condition, comparing name to "anything".
+Correct query:
+SELECT TrackId, Name
+FROM Track
+
+Query with redundancy:
+SELECT TrackId, Name
+FROM Track
+WHERE Name LIKE '%'
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Clustered Index Scan on [dbo].[Track]
+
+   Query with redundancy:
+   - Clustered Index Scan on [dbo].[Track]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on TRACK
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Track (ALL), None
+
+   Query with redundancy:
+   - SIMPLE on Track (ALL), Using where
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on track
+
+   Query with redundancy:
+   - Seq Scan on track
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4 Error 12, 4 Error 34
+Description: Using LIKE without wildcards.
+Correct query:
+SELECT FirstName, LastName
+FROM Customer
+WHERE Country = 'USA'
+
+Query with redundancy:
+SELECT FirstName, LastName
+FROM Customer
+WHERE Country LIKE 'USA'
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Clustered Index Scan on [dbo].[Customer]
+
+   Query with redundancy:
+   - Clustered Index Scan on [dbo].[Customer]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), Using where
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), Using where
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on customer
+   - Filter
+
+   Query with redundancy:
+   - Seq Scan on customer
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4 Error 14
+Description: Unnecessary IN/EXISTS condition that could be replaced by simple comparison.
+Correct query:
+SELECT *
+FROM Customer
+WHERE Country != 'USA'
+
+Query with redundancy:
+SELECT *
+FROM Customer
+WHERE Country NOT IN
+(SELECT Country
+ FROM Customer
+ WHERE Country = 'USA')
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Clustered Index Scan on [dbo].[Customer]
+
+   Query with redundancy:
+   - Nested Loops on [dbo].[Customer]
+   - Clustered Index Scan on [dbo].[Customer]
+   - Clustered Index Scan on [dbo].[Customer]
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - HASH JOIN ANTI SNA on 
+   - TABLE ACCESS FULL on CUSTOMER
+   - TABLE ACCESS FULL on CUSTOMER
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), Using where
+
+   Query with redundancy:
+   - PRIMARY on Customer (ALL), Using where
+   - SUBQUERY on Customer (ALL), Using where
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on customer
+   - Filter
+
+   Query with redundancy:
+   - Seq Scan on customer
+   - Filter
+   -   SubPlan 1
+   - ->  Seq Scan on customer customer_1
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Description: Unnecessarily complicated JOIN with DISTINCT that can be replaced by simpler EXISTS.
+Correct query:
+SELECT Album.AlbumId, Album.Title
+FROM Album
+WHERE EXISTS (
+    SELECT 1
+    FROM Track
+    JOIN Genre ON Track.GenreId = Genre.GenreId
+    WHERE Track.AlbumId = Album.AlbumId AND Genre.Name = 'Pop'
+)
+
+Query with redundancy:
+SELECT DISTINCT Album.AlbumId, Album.Title
+FROM Album
+JOIN Track ON Album.AlbumId = Track.AlbumId
+JOIN Genre ON Track.GenreId = Genre.GenreId
+WHERE Genre.Name = 'Pop'
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Merge Join on [dbo].[Album]
+   - Clustered Index Scan on [dbo].[Album]
+   - Sort on [dbo].[Genre]
+   - Hash Match on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Track]
+
+   Query with redundancy:
+   - Sort on [dbo].[Genre]
+   - Hash Match on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Genre]
+   - Index Seek on [dbo].[Track]
+   - Clustered Index Seek on [dbo].[Track]
+   - Clustered Index Scan on [dbo].[Album]
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - HASH JOIN RIGHT SEMI on 
+   - VIEW on VW_SQ_1
+   - HASH JOIN on 
+   - TABLE ACCESS FULL on GENRE
+   - TABLE ACCESS FULL on TRACK
+   - TABLE ACCESS FULL on ALBUM
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - HASH UNIQUE on 
+   - HASH JOIN SEMI on 
+   - MERGE JOIN CARTESIAN on 
+   - TABLE ACCESS FULL on GENRE
+   - BUFFER SORT on 
+   - TABLE ACCESS FULL on ALBUM
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Album (ALL), None
+   - SIMPLE on <subquery2> (eq_ref), None
+   - MATERIALIZED on Genre (ALL), Using where
+   - MATERIALIZED on Track (ref), None
+
+   Query with redundancy:
+   - SIMPLE on Genre (ALL), Using where; Using temporary
+   - SIMPLE on Track (ref), Using where
+   - SIMPLE on Album (eq_ref), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Hash Semi Join
+   - Hash Cond
+   - ->  Seq Scan on album
+   - ->  Hash
+   - ->  Nested Loop
+   - ->  Seq Scan on genre
+   - Filter
+   - ->  Bitmap Heap Scan on track
+   - Recheck Cond
+   - ->  Bitmap Index Scan on track_genre_id_idx
+   - Index Cond
+
+   Query with redundancy:
+   - HashAggregate
+   -   Group Key: album.albumid, album.title
+   - ->  Hash Join
+   - Hash Cond
+   - ->  Nested Loop
+   - ->  Seq Scan on genre
+   - Filter
+   - ->  Bitmap Heap Scan on track
+   - Recheck Cond
+   - ->  Bitmap Index Scan on track_genre_id_idx
+   - Index Cond
+   - ->  Hash
+   - ->  Seq Scan on album
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 2.3. Error 6
+Description: Using unnecessary JOIN if we only use attributes from one table.
+Correct query:
+SELECT Invoice.InvoiceId, Invoice.Total
+FROM Invoice
+WHERE Invoice.Total < 1
+
+Query with redundancy:
+SELECT Invoice.InvoiceId, Invoice.Total
+FROM Invoice
+JOIN Customer ON Invoice.CustomerId = Customer.CustomerId
+WHERE Invoice.Total < 1
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Clustered Index Scan on [dbo].[Invoice]
+
+   Query with redundancy:
+   - Clustered Index Scan on [dbo].[Invoice]
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on INVOICE
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - HASH JOIN on 
+   - TABLE ACCESS FULL on INVOICE
+   - TABLE ACCESS FULL on CUSTOMER
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Invoice (ALL), Using where
+
+   Query with redundancy:
+   - SIMPLE on Invoice (ALL), Using where
+   - SIMPLE on Customer (eq_ref), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on invoice
+   - Filter
+
+   Query with redundancy:
+   - Hash Join
+   - Hash Cond
+   - ->  Seq Scan on invoice
+   - Filter
+   - ->  Hash
+   - ->  Seq Scan on customer
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 2.2 Error 4
+Description: JOINing table on itself that just duplicates output columns.
+Correct query:
+SELECT GenreId, Name, GenreId, Name
+FROM Genre
+
+Query with redundancy:
+SELECT *
+FROM Genre as g1
+JOIN Genre as g2 ON g1.GenreId=g2.GenreId
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Clustered Index Scan on [dbo].[Genre]
+
+   Query with redundancy:
+   - Nested Loops on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Genre]
+   - Clustered Index Seek on [dbo].[Genre]
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on GENRE
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - HASH JOIN on 
+   - TABLE ACCESS FULL on GENRE
+   - TABLE ACCESS FULL on GENRE
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Genre (ALL), None
+
+   Query with redundancy:
+   - SIMPLE on g1 (ALL), None
+   - SIMPLE on g2 (eq_ref), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on genre
+
+   Query with redundancy:
+   - Hash Join
+   - Hash Cond
+   - ->  Seq Scan on genre g1
+   - ->  Hash
+   - ->  Seq Scan on genre g2
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 2.8 Error 23
+Description: Unnecessary UNION.
+Correct query:
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Rock')
+   OR GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Jazz')
+
+Query with redundancy:
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Rock')
+UNION
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Jazz')
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Nested Loops on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Stream Aggregate on [dbo].[Genre]
+   - Merge Join on [dbo].[Genre]
+   - Assert on [dbo].[Genre]
+   - Stream Aggregate on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Genre]
+   - Assert on [dbo].[Genre]
+   - Stream Aggregate on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Genre]
+   - Index Seek on [dbo].[Track]
+   - Clustered Index Seek on [dbo].[Track]
+
+   Query with redundancy:
+   - Merge Join on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Assert on [dbo].[Genre]
+   - Stream Aggregate on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Genre]
+   - Index Seek on [dbo].[Track]
+   - Clustered Index Seek on [dbo].[Track]
+   - Nested Loops on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Assert on [dbo].[Genre]
+   - Stream Aggregate on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Genre]
+   - Index Seek on [dbo].[Track]
+   - Clustered Index Seek on [dbo].[Track]
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on TRACK
+   - TABLE ACCESS FULL on GENRE
+   - TABLE ACCESS FULL on GENRE
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - SORT UNIQUE on 
+   - UNION-ALL on 
+   - TABLE ACCESS FULL on TRACK
+   - TABLE ACCESS FULL on GENRE
+   - TABLE ACCESS FULL on TRACK
+   - TABLE ACCESS FULL on GENRE
+
+My SQL (different plans):
+   Correct Query:
+   - PRIMARY on Track (ALL), Using where
+   - SUBQUERY on Genre (ALL), Using where
+   - SUBQUERY on Genre (ALL), Using where
+
+   Query with redundancy:
+   - PRIMARY on Track (ref), Using where
+   - SUBQUERY on Genre (ALL), Using where
+   - UNION on Track (ref), Using where
+   - SUBQUERY on Genre (ALL), Using where
+   - UNION RESULT on <union1,3> (ALL), Using temporary
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Bitmap Heap Scan on track
+   - Recheck Cond
+   - InitPlan 1
+   - ->  Seq Scan on genre
+   - Filter
+   - InitPlan 2
+   - ->  Seq Scan on genre genre_1
+   - Filter
+   - ->  BitmapOr
+   - ->  Bitmap Index Scan on track_genre_id_idx
+   - Index Cond
+   - ->  Bitmap Index Scan on track_genre_id_idx
+   - Index Cond
+
+   Query with redundancy:
+   - HashAggregate
+   -   Group Key: track.trackid, track.name
+   - ->  Append
+   - ->  Bitmap Heap Scan on track
+   - Recheck Cond
+   - InitPlan 1
+   - ->  Seq Scan on genre
+   - Filter
+   - ->  Bitmap Index Scan on track_genre_id_idx
+   - Index Cond
+   - ->  Bitmap Heap Scan on track track_1
+   - Recheck Cond
+   - InitPlan 2
+   - ->  Seq Scan on genre genre_1
+   - Filter
+   - ->  Bitmap Index Scan on track_genre_id_idx
+   - Index Cond
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 3 Error 26
+Description: UNION that could be replaced by UNION ALL.
+Correct query:
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Classical')
+UNION ALL
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Hip Hop/Rap')
+
+Query with redundancy:
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Classical')
+UNION
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Hip Hop/Rap')
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Concatenation on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Assert on [dbo].[Genre]
+   - Stream Aggregate on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Genre]
+   - Index Seek on [dbo].[Track]
+   - Clustered Index Seek on [dbo].[Track]
+   - Nested Loops on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Assert on [dbo].[Genre]
+   - Stream Aggregate on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Genre]
+   - Index Seek on [dbo].[Track]
+   - Clustered Index Seek on [dbo].[Track]
+
+   Query with redundancy:
+   - Merge Join on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Assert on [dbo].[Genre]
+   - Stream Aggregate on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Genre]
+   - Index Seek on [dbo].[Track]
+   - Clustered Index Seek on [dbo].[Track]
+   - Nested Loops on [dbo].[Genre]
+   - Nested Loops on [dbo].[Genre]
+   - Assert on [dbo].[Genre]
+   - Stream Aggregate on [dbo].[Genre]
+   - Clustered Index Scan on [dbo].[Genre]
+   - Index Seek on [dbo].[Track]
+   - Clustered Index Seek on [dbo].[Track]
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - UNION-ALL on 
+   - TABLE ACCESS FULL on TRACK
+   - TABLE ACCESS FULL on GENRE
+   - TABLE ACCESS FULL on TRACK
+   - TABLE ACCESS FULL on GENRE
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - SORT UNIQUE on 
+   - UNION-ALL on 
+   - TABLE ACCESS FULL on TRACK
+   - TABLE ACCESS FULL on GENRE
+   - TABLE ACCESS FULL on TRACK
+   - TABLE ACCESS FULL on GENRE
+
+My SQL (different plans):
+   Correct Query:
+   - PRIMARY on Track (ref), Using where
+   - SUBQUERY on Genre (ALL), Using where
+   - UNION on Track (ref), Using where
+   - SUBQUERY on Genre (ALL), Using where
+
+   Query with redundancy:
+   - PRIMARY on Track (ref), Using where
+   - SUBQUERY on Genre (ALL), Using where
+   - UNION on Track (ref), Using where
+   - SUBQUERY on Genre (ALL), Using where
+   - UNION RESULT on <union1,3> (ALL), Using temporary
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Append
+   - ->  Bitmap Heap Scan on track
+   - Recheck Cond
+   - InitPlan 1
+   - ->  Seq Scan on genre
+   - Filter
+   - ->  Bitmap Index Scan on track_genre_id_idx
+   - Index Cond
+   - ->  Bitmap Heap Scan on track track_1
+   - Recheck Cond
+   - InitPlan 2
+   - ->  Seq Scan on genre genre_1
+   - Filter
+   - ->  Bitmap Index Scan on track_genre_id_idx
+   - Index Cond
+
+   Query with redundancy:
+   - HashAggregate
+   -   Group Key: track.trackid, track.name
+   - ->  Append
+   - ->  Bitmap Heap Scan on track
+   - Recheck Cond
+   - InitPlan 1
+   - ->  Seq Scan on genre
+   - Filter
+   - ->  Bitmap Index Scan on track_genre_id_idx
+   - Index Cond
+   - ->  Bitmap Heap Scan on track track_1
+   - Recheck Cond
+   - InitPlan 2
+   - ->  Seq Scan on genre genre_1
+   - Filter
+   - ->  Bitmap Index Scan on track_genre_id_idx
+   - Index Cond
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 4 Error 35, 36
+Description: Using outer join that can be replaced by inner join. All tuples generated by the outer join are eliminated by the WHERE-condition.
+Correct query:
+SELECT t.TrackId, t.Name, il.InvoiceLineId
+FROM Track t 
+INNER JOIN InvoiceLine il ON t.TrackId = il.TrackId
+
+Query with redundancy:
+SELECT t.TrackId, t.Name, il.InvoiceLineId
+FROM Track t LEFT OUTER JOIN InvoiceLine il ON t.TrackId = il.TrackId
+WHERE il.InvoiceLineId IS NOT NULL
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Merge Join on [dbo].[Track]
+   - Clustered Index Scan on [dbo].[Track]
+   - Index Scan on [dbo].[InvoiceLine]
+
+   Query with redundancy:
+   - Merge Join on [dbo].[Track]
+   - Clustered Index Scan on [dbo].[Track]
+   - Index Scan on [dbo].[InvoiceLine]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - HASH JOIN on 
+   - TABLE ACCESS FULL on INVOICELINE
+   - TABLE ACCESS FULL on TRACK
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - HASH JOIN on 
+   - TABLE ACCESS FULL on INVOICELINE
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on il (index), Using index
+   - SIMPLE on t (eq_ref), None
+
+   Query with redundancy:
+   - SIMPLE on il (index), Using where; Using index
+   - SIMPLE on t (eq_ref), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Hash Join
+   - Hash Cond
+   - ->  Seq Scan on invoiceline il
+   - ->  Hash
+   - ->  Seq Scan on track t
+
+   Query with redundancy:
+   - Hash Join
+   - Hash Cond
+   - ->  Seq Scan on invoiceline il
+   - Filter
+   - ->  Hash
+   - ->  Seq Scan on track t
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 4 Error 35
+Description: Condition on left table in left outer join that excludes all possible join partners.
+Correct query:
+SELECT t.TrackId, t.Name, il.InvoiceLineId
+FROM Track t
+INNER JOIN InvoiceLine il ON t.TrackId = il.TrackId
+WHERE il.InvoiceLineId = 52
+
+Query with redundancy:
+SELECT t.TrackId, t.Name, il.InvoiceLineId
+FROM Track t
+LEFT OUTER JOIN InvoiceLine il ON t.TrackId = il.TrackId
+WHERE il.InvoiceLineId = 52
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Nested Loops on [dbo].[InvoiceLine]
+   - Clustered Index Seek on [dbo].[InvoiceLine]
+   - Clustered Index Seek on [dbo].[Track]
+
+   Query with redundancy:
+   - Nested Loops on [dbo].[InvoiceLine]
+   - Clustered Index Seek on [dbo].[InvoiceLine]
+   - Clustered Index Seek on [dbo].[Track]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - HASH JOIN on 
+   - TABLE ACCESS FULL on INVOICELINE
+   - TABLE ACCESS FULL on TRACK
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - HASH JOIN on 
+   - TABLE ACCESS FULL on INVOICELINE
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on il (const), None
+   - SIMPLE on t (const), None
+
+   Query with redundancy:
+   - SIMPLE on il (const), None
+   - SIMPLE on t (const), None
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Nested Loop
+   - ->  Index Scan using invoice_line_pkey on invoiceline il
+   - Index Cond
+   - ->  Index Scan using track_pkey on track t
+   - Index Cond
+
+   Query with redundancy:
+   - Nested Loop
+   - ->  Index Scan using invoice_line_pkey on invoiceline il
+   - Index Cond
+   - ->  Index Scan using track_pkey on track t
+   - Index Cond
+----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: Semantic errors in SQL queries
+Reference: 2.5 Error 17
+Description: Applying COUNT() to a column that is unique.
+Correct query:
+SELECT Count(*)
+FROM Track
+
+Query with redundancy:
+SELECT Count(TrackId)
+FROM Track
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Compute Scalar on [dbo].[Track]
+   - Stream Aggregate on [dbo].[Track]
+   - Index Scan on [dbo].[Track]
+
+   Query with redundancy:
+   - Compute Scalar on [dbo].[Track]
+   - Stream Aggregate on [dbo].[Track]
+   - Index Scan on [dbo].[Track]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - SORT AGGREGATE on 
+   - TABLE ACCESS FULL on TRACK
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - SORT AGGREGATE on 
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Track (index), Using index
+
+   Query with redundancy:
+   - SIMPLE on Track (index), Using index
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Aggregate
+   - ->  Seq Scan on track
+
+   Query with redundancy:
+   - Aggregate
+   - ->  Seq Scan on track
+----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: Semantic errors in SQL queries
+Reference: 2.5 Error 16
+Description: Unnecessary DISTINCT in MIN / MAX aggregations.
+Correct query:
+SELECT MAX(UnitPrice)
+FROM Track
+
+Query with redundancy:
+SELECT MAX(DISTINCT UnitPrice)
+FROM Track
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Stream Aggregate on [dbo].[Track]
+   - Clustered Index Scan on [dbo].[Track]
+
+   Query with redundancy:
+   - Stream Aggregate on [dbo].[Track]
+   - Clustered Index Scan on [dbo].[Track]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - SORT AGGREGATE on 
+   - TABLE ACCESS FULL on TRACK
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - SORT AGGREGATE on 
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Track (ALL), None
+
+   Query with redundancy:
+   - SIMPLE on Track (ALL), None
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Aggregate
+   - ->  Seq Scan on track
+
+   Query with redundancy:
+   - Aggregate
+   - ->  Seq Scan on track
+----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: null
+Reference: null
+Description: Unnecessary replacing GROUP BY in MIN / MAX aggregations with subquery.
+Correct query:
+SELECT CustomerId, SUM(Total)
+FROM Invoice
+GROUP BY CustomerId
+
+Query with redundancy:
+SELECT DISTINCT i1.CustomerId, (
+SELECT SUM(i2.Total)
+FROM Invoice AS i2
+WHERE i1.CustomerId = i2.CustomerId
+)
+FROM Invoice AS i1
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Stream Aggregate on [dbo].[Invoice]
+   - Sort on [dbo].[Invoice]
+   - Clustered Index Scan on [dbo].[Invoice]
+
+   Query with redundancy:
+   - Sort on [dbo].[Invoice]
+   - Compute Scalar on [dbo].[Invoice]
+   - Merge Join on [dbo].[Invoice]
+   - Stream Aggregate on [dbo].[Invoice]
+   - Sort on [dbo].[Invoice]
+   - Clustered Index Scan on [dbo].[Invoice]
+   - Index Scan on [dbo].[Invoice]
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - HASH GROUP BY on 
+   - TABLE ACCESS FULL on INVOICE
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - HASH UNIQUE on 
+   - HASH GROUP BY on 
+   - HASH JOIN RIGHT OUTER on 
+   - TABLE ACCESS FULL on INVOICE
+   - TABLE ACCESS FULL on INVOICE
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Invoice (index), None
+
+   Query with redundancy:
+   - PRIMARY on i1 (index), Using index; Using temporary
+   - DEPENDENT SUBQUERY on i2 (ref), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - HashAggregate
+   -   Group Key: customerid
+   - ->  Seq Scan on invoice
+
+   Query with redundancy:
+   - Unique
+   - ->  Sort
+   - Sort Key i1.customerid,
+   - ->  Seq Scan on invoice i1
+   -               SubPlan 1
+   - ->  Aggregate
+   - ->  Bitmap Heap Scan on invoice i2
+   - Recheck Cond
+   - ->  Bitmap Index Scan on invoice_customer_id_idx
+   - Index Cond
+----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 19
+Description: Using aggregation in subquery on id is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT Invoice.InvoiceId, 1
+FROM Invoice
+
+Query with redundancy:
+SELECT Invoice.InvoiceId, (
+SELECT COUNT(*)
+FROM Customer
+WHERE Customer.CustomerId = Invoice.CustomerId
+)
+FROM Invoice
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Compute Scalar on [dbo].[Invoice]
+   - Index Scan on [dbo].[Invoice]
+
+   Query with redundancy:
+   - Compute Scalar on [dbo].[Customer]
+   - Merge Join on [dbo].[Customer]
+   - Compute Scalar on [dbo].[Customer]
+   - Clustered Index Scan on [dbo].[Customer]
+   - Index Scan on [dbo].[Invoice]
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on INVOICE
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - SORT AGGREGATE on 
+   - TABLE ACCESS FULL on CUSTOMER
+   - TABLE ACCESS FULL on INVOICE
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Invoice (index), Using index
+
+   Query with redundancy:
+   - PRIMARY on Invoice (index), Using index
+   - DEPENDENT SUBQUERY on Customer (eq_ref), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on invoice
+
+   Query with redundancy:
+   - Seq Scan on invoice
+   -   SubPlan 1
+   - ->  Aggregate
+   - ->  Seq Scan on customer
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Grouping
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 18
+Description: Unnecessary GROUP BY in EXISTS subquery.
+Correct query:
+SELECT *
+FROM Album
+WHERE EXISTS (
+    SELECT 1
+    FROM Track
+    WHERE TrackId = Track.TrackId AND Album.Title = 'Outbreak'
+)
+
+Query with redundancy:
+SELECT *
+FROM Album
+WHERE EXISTS (
+    SELECT 1
+    FROM Track
+    WHERE TrackId = Track.TrackId AND Album.Title = 'Outbreak'
+    GROUP BY TrackId
+)
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Nested Loops on [dbo].[Album]
+   - Clustered Index Scan on [dbo].[Album]
+   - Index Scan on [dbo].[Track]
+
+   Query with redundancy:
+   - Nested Loops on [dbo].[Album]
+   - Clustered Index Scan on [dbo].[Album]
+   - Index Scan on [dbo].[Track]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - FILTER on 
+   - TABLE ACCESS FULL on ALBUM
+   - TABLE ACCESS FULL on TRACK
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - FILTER on 
+   - TABLE ACCESS FULL on ALBUM
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Album (ALL), None
+   - SIMPLE on <subquery2> (eq_ref), Using where
+   - MATERIALIZED on Track (index), Using index
+
+   Query with redundancy:
+   - SIMPLE on Album (ALL), None
+   - SIMPLE on <subquery2> (eq_ref), Using where
+   - MATERIALIZED on Track (index), Using index
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Nested Loop Semi Join
+   - ->  Seq Scan on album
+   - Filter
+   - ->  Seq Scan on track
+   - Filter
+
+   Query with redundancy:
+   - Nested Loop Semi Join
+   - ->  Seq Scan on album
+   - Filter
+   - ->  Seq Scan on track
+   - Filter
+----------------------------------------------------------------------------------------------------
+Category: Case
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 19
+Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT TrackId, 'Yes' AS IsUnique
+FROM Track
+
+Query with redundancy:
+SELECT TrackId,
+CASE
+    WHEN Count(Name) = 1 THEN 'Yes' ELSE 'No'
+END AS IsUnique
+FROM Track
+GROUP BY TrackId
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Compute Scalar on [dbo].[Track]
+   - Index Scan on [dbo].[Track]
+
+   Query with redundancy:
+   - Compute Scalar on [dbo].[Track]
+   - Clustered Index Scan on [dbo].[Track]
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on TRACK
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - HASH GROUP BY on 
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Track (index), Using index
+
+   Query with redundancy:
+   - SIMPLE on Track (index), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on track
+
+   Query with redundancy:
+   - HashAggregate
+   -   Group Key: trackid
+   - ->  Seq Scan on track
+----------------------------------------------------------------------------------------------------
+Category: Case
+Source: Semantic errors in SQL queries
+Reference: 2.4 Error 12, 4 Error 34
+Description: Using LIKE without wildcards.
+Correct query:
+SELECT FirstName, LastName,
+CASE
+WHEN Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Query with redundancy:
+SELECT FirstName, LastName,
+CASE
+    WHEN Country LIKE 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Compute Scalar on [dbo].[Customer]
+   - Clustered Index Scan on [dbo].[Customer]
+
+   Query with redundancy:
+   - Compute Scalar on [dbo].[Customer]
+   - Clustered Index Scan on [dbo].[Customer]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), None
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), None
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on customer
+
+   Query with redundancy:
+   - Seq Scan on customer
+----------------------------------------------------------------------------------------------------
+Category: Case
+Description: Conditioning attribute to be from any of its unique values.
+Correct query:
+SELECT Name, TrackId, 'Yes'
+FROM Track
+
+Query with redundancy:
+SELECT Name, TrackId, CASE
+    WHEN TrackId IN (SELECT TrackId FROM Track) THEN 'Yes' ELSE 'No'
+END
+FROM Track
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Compute Scalar on [dbo].[Track]
+   - Clustered Index Scan on [dbo].[Track]
+
+   Query with redundancy:
+   - Compute Scalar on [dbo].[Track]
+   - Merge Join on [dbo].[Track]
+   - Clustered Index Scan on [dbo].[Track]
+   - Clustered Index Scan on [dbo].[Track]
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on TRACK
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on TRACK
+   - TABLE ACCESS FULL on TRACK
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Track (ALL), None
+
+   Query with redundancy:
+   - PRIMARY on Track (ALL), None
+   - SUBQUERY on Track (index), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on track
+
+   Query with redundancy:
+   - Seq Scan on track
+   -   SubPlan 1
+   - ->  Seq Scan on track track_1
+----------------------------------------------------------------------------------------------------
+Category: Case
+Source: Semantic errors in SQL queries
+Reference: 2.4. Error 8
+Description: Duplicated (redundant) conditions with OR operator.
+Correct query:
+SELECT FirstName, LastName,
+CASE
+    WHEN Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Query with redundancy:
+SELECT FirstName, LastName,
+CASE
+    WHEN Country = 'USA' OR Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   - Compute Scalar on [dbo].[Customer]
+   - Clustered Index Scan on [dbo].[Customer]
+
+   Query with redundancy:
+   - Compute Scalar on [dbo].[Customer]
+   - Clustered Index Scan on [dbo].[Customer]
+
+Oracle (same plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on CUSTOMER
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), None
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), None
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on customer
+
+   Query with redundancy:
+   - Seq Scan on customer
+----------------------------------------------------------------------------------------------------
+Category: Window
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 19
+Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT ArtistId, '1'
+FROM Artist
+
+Query with redundancy:
+SELECT ArtistId, COUNT(*) OVER (PARTITION BY ArtistId) AS Count
+FROM Artist
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Compute Scalar on [dbo].[Artist]
+   - Clustered Index Scan on [dbo].[Artist]
+
+   Query with redundancy:
+   - Nested Loops on [dbo].[Artist]
+   - Table Spool on [dbo].[Artist]
+   - Segment on [dbo].[Artist]
+   - Clustered Index Scan on [dbo].[Artist]
+   - Nested Loops
+   - Compute Scalar
+   - Stream Aggregate
+   - Table Spool
+   - Table Spool
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on ARTIST
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - WINDOW SORT on 
+   - TABLE ACCESS FULL on ARTIST
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Artist (index), Using index
+
+   Query with redundancy:
+   - SIMPLE on Artist (index), Using index; Using filesort
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on artist
+
+   Query with redundancy:
+   - WindowAgg
+   - ->  Sort
+   -         Sort Key: artistid
+   - ->  Seq Scan on artist
+----------------------------------------------------------------------------------------------------
+Category: Window
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 19
+Description: Using aggregation with group by on ids is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT ArtistId, AlbumId, '1' AS Count
+FROM Album
+
+Query with redundancy:
+SELECT ArtistId, AlbumId, COUNT(*) OVER (PARTITION BY ArtistId, AlbumId) AS Count
+FROM Album
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   - Compute Scalar on [dbo].[Album]
+   - Index Scan on [dbo].[Album]
+
+   Query with redundancy:
+   - Nested Loops on [dbo].[Album]
+   - Table Spool on [dbo].[Album]
+   - Segment on [dbo].[Album]
+   - Clustered Index Scan on [dbo].[Album]
+   - Nested Loops
+   - Compute Scalar
+   - Stream Aggregate
+   - Table Spool
+   - Table Spool
+
+Oracle (different plans):
+   Correct Query:
+   - SELECT STATEMENT on 
+   - TABLE ACCESS FULL on ALBUM
+
+   Query with redundancy:
+   - SELECT STATEMENT on 
+   - WINDOW SORT on 
+   - TABLE ACCESS FULL on ALBUM
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Album (index), Using index
+
+   Query with redundancy:
+   - SIMPLE on Album (index), Using index; Using filesort
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on album
+
+   Query with redundancy:
+   - WindowAgg
+   - ->  Sort
+   -         Sort Key: artistid, albumid
+   - ->  Seq Scan on album
+----------------------------------------------------------------------------------------------------

@@ -1,0 +1,2330 @@
+Benchmark (strict) without indexes from: 20.05.2024 18:00:13
+
+Benchmark Results (strict):
+Microsoft SQL Server: 12 / 34
+Oracle: 12 / 34
+My SQL: 15 / 34
+Postgre SQL: 7 / 34
+
+----------------------------------------------------------------------------------------------------
+Redundancy Benchmark (strict) for 34 queries:
+----------------------------------------------------------------------------------------------------
+Category: Attributes
+Source: Semantic errors in SQL queries
+Reference: 2. Unnecessary complications (1)
+Description: We already know the attribute country, there is no need to have it in the SELECT.
+Correct query:
+SELECT FirstName, LastName, 'Czech Republic' AS Country
+FROM Customer
+WHERE Country = 'Czech Republic'
+
+Query with redundancy:
+SELECT FirstName, LastName, Country
+FROM Customer
+WHERE Country = 'Czech Republic'
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]='Czech Republic')) (Est Rows: 2, Est IO Cost: 0, Est CPU Time: 2E-07, Avg Row Size: 82)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'Czech Republic')) (Est Rows: 2, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 87)
+
+   Query with redundancy:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'Czech Republic')) (Est Rows: 2, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 87)
+
+Oracle (same plans):
+   Correct Query:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |     2 |    48 |     3   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| CUSTOMER |     2 |    48 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |     2 |    48 |     3   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| CUSTOMER |     2 |    48 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 10%), Using where
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 10%), Using where
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=2 width=46)
+   -   Filter: ((country)::text = 'Czech Republic'::text)
+
+   Query with redundancy:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=2 width=21)
+   -   Filter: ((country)::text = 'Czech Republic'::text)
+----------------------------------------------------------------------------------------------------
+Category: Distinct
+Source: Semantic errors in SQL queries
+Reference: 2.2. Error 2
+Description: Using distinct on already unique values.
+Correct query:
+SELECT AlbumId
+FROM Album
+
+Query with redundancy:
+SELECT DISTINCT(AlbumId)
+FROM Album
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IFK_AlbumArtistId])) (Est Rows: 347, Est IO Cost: 0,003125, Est CPU Time: 0,0005387, Avg Row Size: 11)
+
+   Query with redundancy:
+   -   |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IFK_AlbumArtistId])) (Est Rows: 347, Est IO Cost: 0,003125, Est CPU Time: 0,0005387, Avg Row Size: 11)
+
+Oracle (different plans):
+   Correct Query:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |   347 |  1388 |     3   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| ALBUM |   347 |  1388 |     3   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |   347 |  1388 |     4  (25)| 00:00:01 |
+   - |   1 |  HASH UNIQUE       |       |   347 |  1388 |     4  (25)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| ALBUM |   347 |  1388 |     3   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Album (index), key: IFK_AlbumArtistId comparing to None, rows: 347 (filtered 100%), Using index
+
+   Query with redundancy:
+   - SIMPLE on Album (index), key: IFK_AlbumArtistId comparing to None, rows: 347 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on album  (cost=0.00..6.47 rows=347 width=4)
+
+   Query with redundancy:
+   - HashAggregate  (cost=7.34..10.81 rows=347 width=4)
+   -   Group Key: albumid
+   -   ->  Seq Scan on album  (cost=0.00..6.47 rows=347 width=4)
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4. Error 8
+Description: Duplicated (redundant) conditions with OR operator.
+Correct query:
+SELECT *
+FROM Customer
+WHERE Country = 'USA'
+
+Query with redundancy:
+SELECT *
+FROM Customer
+WHERE Country = 'USA' OR Country = 'USA'
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 460)
+
+   Query with redundancy:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 460)
+
+Oracle (same plans):
+   Correct Query:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |    13 |  1469 |     3   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| CUSTOMER |    13 |  1469 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |    13 |  1469 |     3   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| CUSTOMER |    13 |  1469 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 10%), Using where
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 19%), Using where
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=13 width=140)
+   -   Filter: ((country)::text = 'USA'::text)
+
+   Query with redundancy:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=13 width=140)
+   -   Filter: ((country)::text = 'USA'::text)
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4. Error 8
+Description: Duplicated (redundant) conditions with AND operator.
+Correct query:
+SELECT *
+FROM Customer
+WHERE Country = 'USA'
+
+Query with redundancy:
+SELECT *
+FROM Customer
+WHERE Country = 'USA' AND Country = 'USA'
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 460)
+
+   Query with redundancy:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA' AND [LAS0084].[dbo].[Customer].[Country]=N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 460)
+
+Oracle (same plans):
+   Correct Query:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |    13 |  1469 |     3   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| CUSTOMER |    13 |  1469 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |    13 |  1469 |     3   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| CUSTOMER |    13 |  1469 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 10%), Using where
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 10%), Using where
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=13 width=140)
+   -   Filter: ((country)::text = 'USA'::text)
+
+   Query with redundancy:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=13 width=140)
+   -   Filter: ((country)::text = 'USA'::text)
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 1. Introduction
+Description: Mutually exclusive conditions.
+Correct query:
+SELECT *
+FROM Album
+WHERE 1 = 0
+
+Query with redundancy:
+SELECT *
+FROM Album
+WHERE Title = 'Fireball' AND Title = 'Outbreak'
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Constant Scan (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,157E-06, Avg Row Size: 179)
+
+   Query with redundancy:
+   -   |--Constant Scan (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,157E-06, Avg Row Size: 179)
+
+Oracle (different plans):
+   Correct Query:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     1 |    32 |     0   (0)|          |
+   - |*  1 |  FILTER            |       |       |       |            |          |
+   - |   2 |   TABLE ACCESS FULL| ALBUM |   347 | 11104 |     3   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     1 |    32 |     0   (0)|          |
+   - |*  1 |  FILTER            |       |       |       |            |          |
+   - |*  2 |   TABLE ACCESS FULL| ALBUM |     1 |    32 |     3   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Unknown (Unknown), key: None comparing to None, rows:  (filtered %), Impossible WHERE
+
+   Query with redundancy:
+   - SIMPLE on Unknown (Unknown), key: None comparing to None, rows:  (filtered %), Impossible WHERE
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Result  (cost=0.00..0.00 rows=0 width=0)
+   -   One-Time Filter: false
+
+   Query with redundancy:
+   - Result  (cost=0.00..7.34 rows=1 width=31)
+   -   One-Time Filter: false
+   -   ->  Seq Scan on album  (cost=0.00..7.34 rows=1 width=31)
+   -         Filter: ((title)::text = 'Fireball'::text)
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4. Error 8
+Description: Mutually exclusive conditions.
+Correct query:
+SELECT Name
+FROM Track
+WHERE 1 = 0
+
+Query with redundancy:
+SELECT Name
+FROM Track
+WHERE UnitPrice < 1 AND
+      UnitPrice > 1.5
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Constant Scan (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,157E-06, Avg Row Size: 211)
+
+   Query with redundancy:
+   -   |--Constant Scan (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,157E-06, Avg Row Size: 211)
+
+Oracle (different plans):
+   Correct Query:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     1 |    17 |     0   (0)|          |
+   - |*  1 |  FILTER            |       |       |       |            |          |
+   - |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 59551 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     1 |    21 |     0   (0)|          |
+   - |*  1 |  FILTER            |       |       |       |            |          |
+   - |*  2 |   TABLE ACCESS FULL| TRACK |     1 |    21 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Unknown (Unknown), key: None comparing to None, rows:  (filtered %), Impossible WHERE
+
+   Query with redundancy:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 11,11%), Using where
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Result  (cost=0.00..0.00 rows=0 width=0)
+   -   One-Time Filter: false
+
+   Query with redundancy:
+   - Seq Scan on track  (cost=0.00..97.54 rows=1 width=16)
+   -   Filter: ((unitprice < '1'::numeric) AND (unitprice > 1.5))
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4. Error 8
+Description: Using unnecessary conditions that were already fulfilled by another condition.
+Correct query:
+SELECT *
+FROM Track
+WHERE UnitPrice > 1
+
+Query with redundancy:
+SELECT *
+FROM Track
+WHERE UnitPrice > 0.5 AND
+      UnitPrice > 1
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[UnitPrice]>(1.00))) (Est Rows: 213, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 467)
+
+   Query with redundancy:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[UnitPrice]>(0.50) AND [LAS0084].[dbo].[Track].[UnitPrice]>(1.00))) (Est Rows: 213, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 467)
+
+Oracle (same plans):
+   Correct Query:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |   213 | 13632 |    11   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| TRACK |   213 | 13632 |    11   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |   213 | 13632 |    11   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| TRACK |   213 | 13632 |    11   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 33,33%), Using where
+
+   Query with redundancy:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 11,11%), Using where
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on track  (cost=0.00..88.79 rows=213 width=70)
+   -   Filter: (unitprice > '1'::numeric)
+
+   Query with redundancy:
+   - Seq Scan on track  (cost=0.00..97.54 rows=213 width=70)
+   -   Filter: ((unitprice > 0.5) AND (unitprice > '1'::numeric))
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Description: Duplicate values in the IN list.
+Correct query:
+SELECT *
+FROM Track
+WHERE GenreId IN (1, 2, 3)
+
+Query with redundancy:
+SELECT *
+FROM Track
+WHERE GenreId IN (1, 1, 2, 3, 3)
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[GenreId]=(1) OR [LAS0084].[dbo].[Track].[GenreId]=(2) OR [LAS0084].[dbo].[Track].[GenreId]=(3))) (Est Rows: 1801, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 467)
+
+   Query with redundancy:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[GenreId]=(1) OR [LAS0084].[dbo].[Track].[GenreId]=(2) OR [LAS0084].[dbo].[Track].[GenreId]=(3))) (Est Rows: 1801, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 467)
+
+Oracle (same plans):
+   Correct Query:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |  1801 |   112K|    11   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| TRACK |  1801 |   112K|    11   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |  1801 |   112K|    11   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| TRACK |  1801 |   112K|    11   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 51,71%), Using where
+
+   Query with redundancy:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 51,71%), Using where
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on track  (cost=0.00..93.17 rows=1801 width=70)
+   -   Filter: (genreid = ANY ('{1,2,3}'::integer[]))
+
+   Query with redundancy:
+   - Seq Scan on track  (cost=0.00..101.92 rows=3472 width=70)
+   -   Filter: (genreid = ANY ('{1,1,2,3,3}'::integer[]))
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Description: Conditioning attribute to be from any of its unique values.
+Correct query:
+SELECT *
+FROM InvoiceLine
+
+Query with redundancy:
+SELECT *
+FROM InvoiceLine
+WHERE TrackId IN (SELECT TrackId FROM InvoiceLine)
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine])) (Est Rows: 2240, Est IO Cost: 0,009791667, Est CPU Time: 0,002621, Avg Row Size: 32)
+
+   Query with redundancy:
+   -   |--Hash Match(Inner Join, HASH:([LAS0084].[dbo].[InvoiceLine].[TrackId])=([LAS0084].[dbo].[InvoiceLine].[TrackId])) (Est Rows: 2240, Est IO Cost: 0, Est CPU Time: 0,04905784, Avg Row Size: 32)
+   -        |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[InvoiceLine].[TrackId])) (Est Rows: 1984, Est IO Cost: 0, Est CPU Time: 0,002112, Avg Row Size: 11)
+   -        |    |--Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[IFK_InvoiceLineTrackId]), ORDERED FORWARD) (Est Rows: 2240, Est IO Cost: 0,006087963, Est CPU Time: 0,002621, Avg Row Size: 11)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine])) (Est Rows: 2240, Est IO Cost: 0,009791667, Est CPU Time: 0,002621, Avg Row Size: 32)
+
+Oracle (different plans):
+   Correct Query:
+   - ---------------------------------------------------------------------------------
+   - | Id  | Operation         | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |             |  2240 | 40320 |     5   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| INVOICELINE |  2240 | 40320 |     5   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ---------------------------------------------------------------------------------
+   - | Id  | Operation         | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |             |  2240 | 40320 |     5   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| INVOICELINE |  2240 | 40320 |     5   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on InvoiceLine (ALL), key: None comparing to None, rows: 2240 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on InvoiceLine (ALL), key: None comparing to None, rows: 2240 (filtered 100%), None
+   - SIMPLE on <subquery2> (eq_ref), key: <auto_distinct_key> comparing to las0084.InvoiceLine.TrackId, rows: 1 (filtered 100%), None
+   - MATERIALIZED on InvoiceLine (index), key: IFK_InvoiceLineTrackId comparing to None, rows: 2240 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on invoiceline  (cost=0.00..37.40 rows=2240 width=21)
+
+   Query with redundancy:
+   - Hash Semi Join  (cost=65.40..136.40 rows=2240 width=21)
+   -   Hash Cond: (invoiceline.trackid = invoiceline_1.trackid)
+   -   ->  Seq Scan on invoiceline  (cost=0.00..37.40 rows=2240 width=21)
+   -   ->  Hash  (cost=37.40..37.40 rows=2240 width=4)
+   -         ->  Seq Scan on invoiceline invoiceline_1  (cost=0.00..37.40 rows=2240 width=4)
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4 Error 11
+Description: Unnecessary condition, comparing name to "anything".
+Correct query:
+SELECT TrackId, Name
+FROM Track
+
+Query with redundancy:
+SELECT TrackId, Name
+FROM Track
+WHERE Name LIKE '%'
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 215)
+
+   Query with redundancy:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), WHERE:([LAS0084].[dbo].[Track].[Name] like N'%')) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 215)
+
+Oracle (different plans):
+   Correct Query:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| TRACK |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| TRACK |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 11,11%), Using where
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on track  (cost=0.00..80.03 rows=3503 width=20)
+
+   Query with redundancy:
+   - Seq Scan on track  (cost=0.00..88.79 rows=3503 width=20)
+   -   Filter: ((name)::text ~~ '%'::text)
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4 Error 12, 4 Error 34
+Description: Using LIKE without wildcards.
+Correct query:
+SELECT FirstName, LastName
+FROM Customer
+WHERE Country = 'USA'
+
+Query with redundancy:
+SELECT FirstName, LastName
+FROM Customer
+WHERE Country LIKE 'USA'
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 87)
+
+   Query with redundancy:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country] like N'USA')) (Est Rows: 13, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 87)
+
+Oracle (same plans):
+   Correct Query:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |    13 |   312 |     3   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| CUSTOMER |    13 |   312 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |    13 |   312 |     3   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| CUSTOMER |    13 |   312 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 10%), Using where
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 11,11%), Using where
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=13 width=14)
+   -   Filter: ((country)::text = 'USA'::text)
+
+   Query with redundancy:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=13 width=14)
+   -   Filter: ((country)::text ~~ 'USA'::text)
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4 Error 14
+Description: Unnecessary IN/EXISTS condition that could be replaced by simple comparison.
+Correct query:
+SELECT *
+FROM Customer
+WHERE Country != 'USA'
+
+Query with redundancy:
+SELECT *
+FROM Customer
+WHERE Country NOT IN
+(SELECT Country
+ FROM Customer
+ WHERE Country = 'USA')
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]<>N'USA')) (Est Rows: 46, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 460)
+
+   Query with redundancy:
+   -   |--Nested Loops(Left Anti Semi Join, WHERE:([LAS0084].[dbo].[Customer].[Country] IS NULL OR [LAS0084].[dbo].[Customer].[Country]=[LAS0084].[dbo].[Customer].[Country])) (Est Rows: 56,541668, Est IO Cost: 0, Est CPU Time: 0,001787995, Avg Row Size: 488)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer])) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 488)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), WHERE:([LAS0084].[dbo].[Customer].[Country]=N'USA')) (Est Rows: 13, Est IO Cost: 0,0039442405, Est CPU Time: 0,0001434, Avg Row Size: 23)
+
+Oracle (different plans):
+   Correct Query:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |    46 |  5198 |     3   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| CUSTOMER |    46 |  5198 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - -------------------------------------------------------------------------------
+   - | Id  | Operation          | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - -------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |          |    46 |  5566 |     6   (0)| 00:00:01 |
+   - |*  1 |  HASH JOIN ANTI SNA|          |    46 |  5566 |     6   (0)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| CUSTOMER |    59 |  6667 |     3   (0)| 00:00:01 |
+   - |*  3 |   TABLE ACCESS FULL| CUSTOMER |    13 |   104 |     3   (0)| 00:00:01 |
+   - -------------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 90%), Using where
+
+   Query with redundancy:
+   - PRIMARY on Customer (ALL), key: None comparing to None, rows: 59 (filtered 100%), Using where
+   - SUBQUERY on Customer (ALL), key: None comparing to None, rows: 59 (filtered 10%), Using where
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=46 width=140)
+   -   Filter: ((country)::text <> 'USA'::text)
+
+   Query with redundancy:
+   - Seq Scan on customer  (cost=2.77..5.51 rows=30 width=140)
+   -   Filter: (NOT (hashed SubPlan 1))
+   -   SubPlan 1
+   -     ->  Seq Scan on customer customer_1  (cost=0.00..2.74 rows=13 width=7)
+   -           Filter: ((country)::text = 'USA'::text)
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Source: Semantic errors in SQL queries
+Reference: 2.4 Error 13
+Description: Unnecessarily complicated SELECT in EXISTS-subquery. (using unnecessarily DISTINCT)
+Correct query:
+SELECT *
+FROM Album
+WHERE EXISTS (
+    SELECT TrackId
+    FROM Track
+    WHERE Album.AlbumId = Track.AlbumId
+)
+
+Query with redundancy:
+SELECT *
+FROM Album
+WHERE EXISTS (
+    SELECT DISTINCT TrackId
+    FROM Track
+    WHERE Album.AlbumId = Track.AlbumId
+)
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Merge Join(Inner Join, MERGE:([LAS0084].[dbo].[Track].[AlbumId])=([LAS0084].[dbo].[Album].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Album].[AlbumId]=[LAS0084].[dbo].[Track].[AlbumId])) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0,0070921, Avg Row Size: 179)
+   -        |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[AlbumId])) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0,001925, Avg Row Size: 11)
+   -        |    |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackAlbumId]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,009050926, Est CPU Time: 0,0040103, Avg Row Size: 11)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), ORDERED FORWARD) (Est Rows: 347, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 179)
+
+   Query with redundancy:
+   -   |--Merge Join(Inner Join, MERGE:([LAS0084].[dbo].[Track].[AlbumId])=([LAS0084].[dbo].[Album].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Album].[AlbumId]=[LAS0084].[dbo].[Track].[AlbumId])) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0,0070921, Avg Row Size: 179)
+   -        |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Track].[AlbumId])) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0,001925, Avg Row Size: 11)
+   -        |    |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackAlbumId]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,009050926, Est CPU Time: 0,0040103, Avg Row Size: 11)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), ORDERED FORWARD) (Est Rows: 347, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 179)
+
+Oracle (same plans):
+   Correct Query:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |   347 | 12492 |    14   (0)| 00:00:01 |
+   - |*  1 |  HASH JOIN SEMI    |       |   347 | 12492 |    14   (0)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| ALBUM |   347 | 11104 |     3   (0)| 00:00:01 |
+   - |   3 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |   347 | 12492 |    14   (0)| 00:00:01 |
+   - |*  1 |  HASH JOIN SEMI    |       |   347 | 12492 |    14   (0)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| ALBUM |   347 | 11104 |     3   (0)| 00:00:01 |
+   - |   3 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Album (ALL), key: None comparing to None, rows: 347 (filtered 100%), None
+   - SIMPLE on Track (ref), key: IFK_TrackAlbumId comparing to las0084.Album.AlbumId, rows: 10 (filtered 100%), Using index; FirstMatch(Album)
+
+   Query with redundancy:
+   - SIMPLE on Album (ALL), key: None comparing to None, rows: 347 (filtered 100%), None
+   - SIMPLE on Track (ref), key: IFK_TrackAlbumId comparing to las0084.Album.AlbumId, rows: 10 (filtered 100%), Using index; FirstMatch(Album)
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Hash Join  (cost=96.59..107.84 rows=347 width=31)
+   -   Hash Cond: (album.albumid = track.albumid)
+   -   ->  Seq Scan on album  (cost=0.00..6.47 rows=347 width=31)
+   -   ->  Hash  (cost=92.26..92.26 rows=347 width=4)
+   -         ->  HashAggregate  (cost=88.79..92.26 rows=347 width=4)
+   -               Group Key: track.albumid
+   -               ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=4)
+
+   Query with redundancy:
+   - Hash Join  (cost=96.59..107.84 rows=347 width=31)
+   -   Hash Cond: (album.albumid = track.albumid)
+   -   ->  Seq Scan on album  (cost=0.00..6.47 rows=347 width=31)
+   -   ->  Hash  (cost=92.26..92.26 rows=347 width=4)
+   -         ->  HashAggregate  (cost=88.79..92.26 rows=347 width=4)
+   -               Group Key: track.albumid
+   -               ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=4)
+----------------------------------------------------------------------------------------------------
+Category: Conditions
+Description: Unnecessarily complicated JOIN with DISTINCT that can be replaced by simpler EXISTS.
+Correct query:
+SELECT Album.AlbumId, Album.Title
+FROM Album
+WHERE EXISTS (
+    SELECT 1
+    FROM Track
+    JOIN Genre ON Track.GenreId = Genre.GenreId
+    WHERE Track.AlbumId = Album.AlbumId AND Genre.Name = 'Pop'
+)
+
+Query with redundancy:
+SELECT DISTINCT Album.AlbumId, Album.Title
+FROM Album
+JOIN Track ON Album.AlbumId = Track.AlbumId
+JOIN Genre ON Track.GenreId = Genre.GenreId
+WHERE Genre.Name = 'Pop'
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Merge Join(Inner Join, MERGE:([LAS0084].[dbo].[Album].[AlbumId])=([LAS0084].[dbo].[Track].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Track].[AlbumId]=[LAS0084].[dbo].[Album].[AlbumId])) (Est Rows: 108,41756, Est IO Cost: 0, Est CPU Time: 0,006567219, Avg Row Size: 175)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), ORDERED FORWARD) (Est Rows: 347, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 175)
+   -        |--Sort(DISTINCT ORDER BY:([LAS0084].[dbo].[Track].[AlbumId] ASC)) (Est Rows: 108,41756, Est IO Cost: 0,011261261, Est CPU Time: 0,0016586512, Avg Row Size: 11)
+   -             |--Hash Match(Inner Join, HASH:([LAS0084].[dbo].[Genre].[GenreId])=([LAS0084].[dbo].[Track].[GenreId]), RESIDUAL:([LAS0084].[dbo].[Genre].[GenreId]=[LAS0084].[dbo].[Track].[GenreId])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,040811867, Avg Row Size: 11)
+   -                  |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre]), WHERE:([LAS0084].[dbo].[Genre].[Name]=N'Pop')) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 32)
+   -                  |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 15)
+
+   Query with redundancy:
+   -   |--Sort(DISTINCT ORDER BY:([LAS0084].[dbo].[Album].[AlbumId] ASC)) (Est Rows: 108,41756, Est IO Cost: 0,011261261, Est CPU Time: 0,0016588152, Avg Row Size: 175)
+   -        |--Hash Match(Inner Join, HASH:([LAS0084].[dbo].[Track].[AlbumId])=([LAS0084].[dbo].[Album].[AlbumId]), RESIDUAL:([LAS0084].[dbo].[Track].[AlbumId]=[LAS0084].[dbo].[Album].[AlbumId])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,022122895, Avg Row Size: 175)
+   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1006]) WITH UNORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -             |    |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Genre].[GenreId])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -             |    |    |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre]), WHERE:([LAS0084].[dbo].[Genre].[Name]=N'Pop')) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 32)
+   -             |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[LAS0084].[dbo].[Genre].[GenreId]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -             |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 11)
+   -             |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album])) (Est Rows: 347, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 175)
+
+Oracle (different plans):
+   Correct Query:
+   - --------------------------------------------------------------------------------
+   - | Id  | Operation            | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+   - --------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT     |         |   140 |  5740 |    17   (0)| 00:00:01 |
+   - |*  1 |  HASH JOIN RIGHT SEMI|         |   140 |  5740 |    17   (0)| 00:00:01 |
+   - |   2 |   VIEW               | VW_SQ_1 |   140 |  1820 |    14   (0)| 00:00:01 |
+   - |*  3 |    HASH JOIN         |         |   140 |  2800 |    14   (0)| 00:00:01 |
+   - |*  4 |     TABLE ACCESS FULL| GENRE   |     1 |    13 |     3   (0)| 00:00:01 |
+   - |   5 |     TABLE ACCESS FULL| TRACK   |  3503 | 24521 |    11   (0)| 00:00:01 |
+   - |   6 |   TABLE ACCESS FULL  | ALBUM   |   347 |  9716 |     3   (0)| 00:00:01 |
+   - --------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - --------------------------------------------------------------------------------
+   - | Id  | Operation              | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - --------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT       |       |   140 |  6720 |    18   (6)| 00:00:01 |
+   - |   1 |  HASH UNIQUE           |       |   140 |  6720 |    18   (6)| 00:00:01 |
+   - |*  2 |   HASH JOIN SEMI       |       |   140 |  6720 |    17   (0)| 00:00:01 |
+   - |   3 |    MERGE JOIN CARTESIAN|       |   347 | 14227 |     6   (0)| 00:00:01 |
+   - |*  4 |     TABLE ACCESS FULL  | GENRE |     1 |    13 |     3   (0)| 00:00:01 |
+   - |   5 |     BUFFER SORT        |       |   347 |  9716 |     3   (0)| 00:00:01 |
+   - |   6 |      TABLE ACCESS FULL | ALBUM |   347 |  9716 |     3   (0)| 00:00:01 |
+   - |   7 |    TABLE ACCESS FULL   | TRACK |  3503 | 24521 |    11   (0)| 00:00:01 |
+   - --------------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Album (ALL), key: None comparing to None, rows: 347 (filtered 100%), None
+   - SIMPLE on <subquery2> (eq_ref), key: <auto_distinct_key> comparing to las0084.Album.AlbumId, rows: 1 (filtered 100%), None
+   - MATERIALIZED on Genre (ALL), key: None comparing to None, rows: 25 (filtered 10%), Using where
+   - MATERIALIZED on Track (ref), key: IFK_TrackGenreId comparing to las0084.Genre.GenreId, rows: 139 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on Genre (ALL), key: None comparing to None, rows: 25 (filtered 10%), Using where; Using temporary
+   - SIMPLE on Track (ref), key: IFK_TrackGenreId comparing to las0084.Genre.GenreId, rows: 139 (filtered 100%), Using where
+   - SIMPLE on Album (eq_ref), key: PRIMARY comparing to las0084.Track.AlbumId, rows: 1 (filtered 100%), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Hash Semi Join  (cost=56.58..65.69 rows=140 width=27)
+   -   Hash Cond: (album.albumid = track.albumid)
+   -   ->  Seq Scan on album  (cost=0.00..6.47 rows=347 width=27)
+   -   ->  Hash  (cost=54.83..54.83 rows=140 width=4)
+   -         ->  Nested Loop  (cost=5.37..54.83 rows=140 width=4)
+   -               ->  Seq Scan on genre  (cost=0.00..1.31 rows=1 width=4)
+   -                     Filter: ((name)::text = 'Pop'::text)
+   -               ->  Bitmap Heap Scan on track  (cost=5.37..52.12 rows=140 width=8)
+   -                     Recheck Cond: (genreid = genre.genreid)
+   -                     ->  Bitmap Index Scan on track_genre_id_idx  (cost=0.00..5.33 rows=140 width=0)
+   -                           Index Cond: (genreid = genre.genreid)
+
+   Query with redundancy:
+   - HashAggregate  (cost=66.70..68.10 rows=140 width=27)
+   -   Group Key: album.albumid, album.title
+   -   ->  Hash Join  (cost=16.17..66.00 rows=140 width=27)
+   -         Hash Cond: (track.albumid = album.albumid)
+   -         ->  Nested Loop  (cost=5.37..54.83 rows=140 width=4)
+   -               ->  Seq Scan on genre  (cost=0.00..1.31 rows=1 width=4)
+   -                     Filter: ((name)::text = 'Pop'::text)
+   -               ->  Bitmap Heap Scan on track  (cost=5.37..52.12 rows=140 width=8)
+   -                     Recheck Cond: (genreid = genre.genreid)
+   -                     ->  Bitmap Index Scan on track_genre_id_idx  (cost=0.00..5.33 rows=140 width=0)
+   -                           Index Cond: (genreid = genre.genreid)
+   -         ->  Hash  (cost=6.47..6.47 rows=347 width=27)
+   -               ->  Seq Scan on album  (cost=0.00..6.47 rows=347 width=27)
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 2.3. Error 6
+Description: Using unnecessary JOIN if we only use attributes from one table.
+Correct query:
+SELECT Invoice.InvoiceId, Invoice.Total
+FROM Invoice
+WHERE Invoice.Total < 1
+
+Query with redundancy:
+SELECT Invoice.InvoiceId, Invoice.Total
+FROM Invoice
+JOIN Customer ON Invoice.CustomerId = Customer.CustomerId
+WHERE Invoice.Total < 1
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice]), WHERE:([LAS0084].[dbo].[Invoice].[Total]<(1.00))) (Est Rows: 55, Est IO Cost: 0,0075694444, Est CPU Time: 0,0006102, Avg Row Size: 20)
+
+   Query with redundancy:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice]), WHERE:([LAS0084].[dbo].[Invoice].[Total]<(1.00))) (Est Rows: 55, Est IO Cost: 0,0075694444, Est CPU Time: 0,0006102, Avg Row Size: 20)
+
+Oracle (different plans):
+   Correct Query:
+   - -----------------------------------------------------------------------------
+   - | Id  | Operation         | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+   - -----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |         |    55 |   440 |     3   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| INVOICE |    55 |   440 |     3   (0)| 00:00:01 |
+   - -----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - -------------------------------------------------------------------------------
+   - | Id  | Operation          | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - -------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |          |    55 |   770 |     6   (0)| 00:00:01 |
+   - |*  1 |  HASH JOIN         |          |    55 |   770 |     6   (0)| 00:00:01 |
+   - |*  2 |   TABLE ACCESS FULL| INVOICE  |    55 |   605 |     3   (0)| 00:00:01 |
+   - |   3 |   TABLE ACCESS FULL| CUSTOMER |    59 |   177 |     3   (0)| 00:00:01 |
+   - -------------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Invoice (ALL), key: None comparing to None, rows: 412 (filtered 33,33%), Using where
+
+   Query with redundancy:
+   - SIMPLE on Invoice (ALL), key: None comparing to None, rows: 412 (filtered 33,33%), Using where
+   - SIMPLE on Customer (eq_ref), key: PRIMARY comparing to las0084.Invoice.CustomerId, rows: 1 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on invoice  (cost=0.00..11.15 rows=55 width=10)
+   -   Filter: (total < '1'::numeric)
+
+   Query with redundancy:
+   - Hash Join  (cost=3.33..14.63 rows=55 width=10)
+   -   Hash Cond: (invoice.customerid = customer.customerid)
+   -   ->  Seq Scan on invoice  (cost=0.00..11.15 rows=55 width=14)
+   -         Filter: (total < '1'::numeric)
+   -   ->  Hash  (cost=2.59..2.59 rows=59 width=4)
+   -         ->  Seq Scan on customer  (cost=0.00..2.59 rows=59 width=4)
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 2.2 Error 4
+Description: JOINing table on itself that just duplicates output columns.
+Correct query:
+SELECT GenreId, Name, GenreId, Name
+FROM Genre
+
+Query with redundancy:
+SELECT *
+FROM Genre as g1
+JOIN Genre as g2 ON g1.GenreId=g2.GenreId
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre])) (Est Rows: 25, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 135)
+
+   Query with redundancy:
+   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([g1].[GenreId])) (Est Rows: 25, Est IO Cost: 0, Est CPU Time: 0,0001045, Avg Row Size: 261)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre] AS [g1])) (Est Rows: 25, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 135)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre] AS [g2]), SEEK:([g2].[GenreId]=[LAS0084].[dbo].[Genre].[GenreId] as [g1].[GenreId]) ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 135)
+
+Oracle (different plans):
+   Correct Query:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |    25 |   325 |     3   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| GENRE |    25 |   325 |     3   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |    25 |   650 |     6   (0)| 00:00:01 |
+   - |*  1 |  HASH JOIN         |       |    25 |   650 |     6   (0)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| GENRE |    25 |   325 |     3   (0)| 00:00:01 |
+   - |   3 |   TABLE ACCESS FULL| GENRE |    25 |   325 |     3   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Genre (ALL), key: None comparing to None, rows: 25 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on g1 (ALL), key: None comparing to None, rows: 25 (filtered 100%), None
+   - SIMPLE on g2 (eq_ref), key: PRIMARY comparing to las0084.g1.GenreId, rows: 1 (filtered 100%), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on genre  (cost=0.00..1.25 rows=25 width=524)
+
+   Query with redundancy:
+   - Hash Join  (cost=1.56..2.89 rows=25 width=524)
+   -   Hash Cond: (g1.genreid = g2.genreid)
+   -   ->  Seq Scan on genre g1  (cost=0.00..1.25 rows=25 width=262)
+   -   ->  Hash  (cost=1.25..1.25 rows=25 width=262)
+   -         ->  Seq Scan on genre g2  (cost=0.00..1.25 rows=25 width=262)
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 2.8 Error 23
+Description: Unnecessary UNION.
+Correct query:
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Rock')
+   OR GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Jazz')
+
+Query with redundancy:
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Rock')
+UNION
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Jazz')
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1016]) WITH UNORDERED PREFETCH) (Est Rows: 210,18, Est IO Cost: 0, Est CPU Time: 0,0008785524, Avg Row Size: 215)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1009])) (Est Rows: 210,18, Est IO Cost: 0, Est CPU Time: 0,0008785524, Avg Row Size: 11)
+   -        |    |--Stream Aggregate(GROUP BY:([Expr1009])) (Est Rows: 1,5, Est IO Cost: 0, Est CPU Time: 1,75E-06, Avg Row Size: 11)
+   -        |    |    |--Merge Join(Concatenation) (Est Rows: 2, Est IO Cost: 0, Est CPU Time: 0,0056023, Avg Row Size: 11)
+   -        |    |         |--Assert(WHERE:(CASE WHEN [Expr1008]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -        |    |         |    |--Stream Aggregate(DEFINE:([Expr1008]=Count(*), [Expr1009]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -        |    |         |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre]), WHERE:([LAS0084].[dbo].[Genre].[Name]=N'Rock')) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 32)
+   -        |    |         |--Assert(WHERE:(CASE WHEN [Expr1010]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -        |    |              |--Stream Aggregate(DEFINE:([Expr1010]=Count(*), [Expr1011]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -        |    |                   |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre]), WHERE:([LAS0084].[dbo].[Genre].[Name]=N'Jazz')) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 135)
+   -        |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1009]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+
+   Query with redundancy:
+   -   |--Merge Join(Union) (Est Rows: 1,5, Est IO Cost: 0, Est CPU Time: 0,006188654, Avg Row Size: 215)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1020]) WITH ORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -        |    |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1013])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -        |    |    |--Assert(WHERE:(CASE WHEN [Expr1012]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -        |    |    |    |--Stream Aggregate(DEFINE:([Expr1012]=Count(*), [Expr1013]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -        |    |    |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre]), WHERE:([LAS0084].[dbo].[Genre].[Name]=N'Rock')) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 32)
+   -        |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1013]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -        |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1021]) WITH ORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1015])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -             |    |--Assert(WHERE:(CASE WHEN [Expr1014]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -             |    |    |--Stream Aggregate(DEFINE:([Expr1014]=Count(*), [Expr1015]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -             |    |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre]), WHERE:([LAS0084].[dbo].[Genre].[Name]=N'Jazz')) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 135)
+   -             |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1015]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -             |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+
+Oracle (different plans):
+   Correct Query:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |   275 |  6600 |    11   (0)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL | TRACK |   275 |  6600 |    11   (0)| 00:00:01 |
+   - |*  2 |   TABLE ACCESS FULL| GENRE |     1 |    13 |     3   (0)| 00:00:01 |
+   - |*  3 |   TABLE ACCESS FULL| GENRE |     1 |    13 |     3   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation            | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT     |       |   280 |  6720 |    30   (7)| 00:00:01 |
+   - |   1 |  SORT UNIQUE         |       |   280 |  6720 |    30   (7)| 00:00:01 |
+   - |   2 |   UNION-ALL          |       |       |       |            |          |
+   - |*  3 |    TABLE ACCESS FULL | TRACK |   140 |  3360 |    11   (0)| 00:00:01 |
+   - |*  4 |     TABLE ACCESS FULL| GENRE |     1 |    13 |     3   (0)| 00:00:01 |
+   - |*  5 |    TABLE ACCESS FULL | TRACK |   140 |  3360 |    11   (0)| 00:00:01 |
+   - |*  6 |     TABLE ACCESS FULL| GENRE |     1 |    13 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - PRIMARY on Track (ALL), key: None comparing to None, rows: 3483 (filtered 40,97%), Using where
+   - SUBQUERY on Genre (ALL), key: None comparing to None, rows: 25 (filtered 10%), Using where
+   - SUBQUERY on Genre (ALL), key: None comparing to None, rows: 25 (filtered 10%), Using where
+
+   Query with redundancy:
+   - PRIMARY on Track (ref), key: IFK_TrackGenreId comparing to const, rows: 1297 (filtered 100%), Using where
+   - SUBQUERY on Genre (ALL), key: None comparing to None, rows: 25 (filtered 10%), Using where
+   - UNION on Track (ref), key: IFK_TrackGenreId comparing to const, rows: 130 (filtered 100%), Using where
+   - SUBQUERY on Genre (ALL), key: None comparing to None, rows: 25 (filtered 10%), Using where
+   - UNION RESULT on <union1,3> (ALL), key: None comparing to None, rows:  (filtered %), Using temporary
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Bitmap Heap Scan on track  (cost=13.42..62.62 rows=275 width=20)
+   -   Recheck Cond: ((genreid = $0) OR (genreid = $1))
+   -   InitPlan 1 (returns $0)
+   -     ->  Seq Scan on genre  (cost=0.00..1.31 rows=1 width=4)
+   -           Filter: ((name)::text = 'Rock'::text)
+   -   InitPlan 2 (returns $1)
+   -     ->  Seq Scan on genre genre_1  (cost=0.00..1.31 rows=1 width=4)
+   -           Filter: ((name)::text = 'Jazz'::text)
+   -   ->  BitmapOr  (cost=10.80..10.80 rows=280 width=0)
+   -         ->  Bitmap Index Scan on track_genre_id_idx  (cost=0.00..5.33 rows=140 width=0)
+   -               Index Cond: (genreid = $0)
+   -         ->  Bitmap Index Scan on track_genre_id_idx  (cost=0.00..5.33 rows=140 width=0)
+   -               Index Cond: (genreid = $1)
+
+   Query with redundancy:
+   - HashAggregate  (cost=112.46..115.26 rows=280 width=422)
+   -   Group Key: track.trackid, track.name
+   -   ->  Append  (cost=6.68..111.06 rows=280 width=422)
+   -         ->  Bitmap Heap Scan on track  (cost=6.68..53.43 rows=140 width=20)
+   -               Recheck Cond: (genreid = $0)
+   -               InitPlan 1 (returns $0)
+   -                 ->  Seq Scan on genre  (cost=0.00..1.31 rows=1 width=4)
+   -                       Filter: ((name)::text = 'Rock'::text)
+   -               ->  Bitmap Index Scan on track_genre_id_idx  (cost=0.00..5.33 rows=140 width=0)
+   -                     Index Cond: (genreid = $0)
+   -         ->  Bitmap Heap Scan on track track_1  (cost=6.68..53.43 rows=140 width=20)
+   -               Recheck Cond: (genreid = $1)
+   -               InitPlan 2 (returns $1)
+   -                 ->  Seq Scan on genre genre_1  (cost=0.00..1.31 rows=1 width=4)
+   -                       Filter: ((name)::text = 'Jazz'::text)
+   -               ->  Bitmap Index Scan on track_genre_id_idx  (cost=0.00..5.33 rows=140 width=0)
+   -                     Index Cond: (genreid = $1)
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 3 Error 26
+Description: UNION that could be replaced by UNION ALL.
+Correct query:
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Classical')
+UNION ALL
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Hip Hop/Rap')
+
+Query with redundancy:
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Classical')
+UNION
+SELECT TrackId, Name
+FROM Track
+WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Hip Hop/Rap')
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Concatenation (Est Rows: 280,24, Est IO Cost: 0, Est CPU Time: 2,8024E-05, Avg Row Size: 215)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1020]) WITH UNORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -        |    |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1013])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -        |    |    |--Assert(WHERE:(CASE WHEN [Expr1012]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -        |    |    |    |--Stream Aggregate(DEFINE:([Expr1012]=Count(*), [Expr1013]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -        |    |    |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre]), WHERE:([LAS0084].[dbo].[Genre].[Name]=N'Classical')) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 32)
+   -        |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1013]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -        |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1021]) WITH UNORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1015])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -             |    |--Assert(WHERE:(CASE WHEN [Expr1014]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -             |    |    |--Stream Aggregate(DEFINE:([Expr1014]=Count(*), [Expr1015]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -             |    |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre]), WHERE:([LAS0084].[dbo].[Genre].[Name]=N'Hip Hop/Rap')) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 135)
+   -             |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1015]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -             |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+
+   Query with redundancy:
+   -   |--Merge Join(Union) (Est Rows: 1,5, Est IO Cost: 0, Est CPU Time: 0,006188654, Avg Row Size: 215)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1020]) WITH ORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -        |    |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1013])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -        |    |    |--Assert(WHERE:(CASE WHEN [Expr1012]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -        |    |    |    |--Stream Aggregate(DEFINE:([Expr1012]=Count(*), [Expr1013]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -        |    |    |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre]), WHERE:([LAS0084].[dbo].[Genre].[Name]=N'Classical')) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 32)
+   -        |    |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1013]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -        |    |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+   -        |--Nested Loops(Inner Join, OUTER REFERENCES:([LAS0084].[dbo].[Track].[TrackId], [Expr1021]) WITH ORDERED PREFETCH) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 215)
+   -             |--Nested Loops(Inner Join, OUTER REFERENCES:([Expr1015])) (Est Rows: 140,12, Est IO Cost: 0, Est CPU Time: 0,0005857016, Avg Row Size: 11)
+   -             |    |--Assert(WHERE:(CASE WHEN [Expr1014]>(1) THEN (0) ELSE NULL END)) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,8E-07, Avg Row Size: 11)
+   -             |    |    |--Stream Aggregate(DEFINE:([Expr1014]=Count(*), [Expr1015]=ANY([LAS0084].[dbo].[Genre].[GenreId]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 1,1E-06, Avg Row Size: 19)
+   -             |    |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Genre].[PK_Genre]), WHERE:([LAS0084].[dbo].[Genre].[Name]=N'Hip Hop/Rap')) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001845, Avg Row Size: 135)
+   -             |    |--Index Seek(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackGenreId]), SEEK:([LAS0084].[dbo].[Track].[GenreId]=[Expr1015]) ORDERED FORWARD) (Est Rows: 140,12, Est IO Cost: 0,003125, Est CPU Time: 0,000311132, Avg Row Size: 11)
+   -             |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), SEEK:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId]) LOOKUP ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 211)
+
+Oracle (different plans):
+   Correct Query:
+   - -----------------------------------------------------------------------------
+   - | Id  | Operation           | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - -----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT    |       |   280 | 13440 |    28   (0)| 00:00:01 |
+   - |   1 |  UNION-ALL          |       |       |       |            |          |
+   - |*  2 |   TABLE ACCESS FULL | TRACK |   140 |  3360 |    11   (0)| 00:00:01 |
+   - |*  3 |    TABLE ACCESS FULL| GENRE |     1 |    13 |     3   (0)| 00:00:01 |
+   - |*  4 |   TABLE ACCESS FULL | TRACK |   140 |  3360 |    11   (0)| 00:00:01 |
+   - |*  5 |    TABLE ACCESS FULL| GENRE |     1 |    13 |     3   (0)| 00:00:01 |
+   - -----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation            | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT     |       |   280 |  6720 |    30   (7)| 00:00:01 |
+   - |   1 |  SORT UNIQUE         |       |   280 |  6720 |    30   (7)| 00:00:01 |
+   - |   2 |   UNION-ALL          |       |       |       |            |          |
+   - |*  3 |    TABLE ACCESS FULL | TRACK |   140 |  3360 |    11   (0)| 00:00:01 |
+   - |*  4 |     TABLE ACCESS FULL| GENRE |     1 |    13 |     3   (0)| 00:00:01 |
+   - |*  5 |    TABLE ACCESS FULL | TRACK |   140 |  3360 |    11   (0)| 00:00:01 |
+   - |*  6 |     TABLE ACCESS FULL| GENRE |     1 |    13 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - PRIMARY on Track (ref), key: IFK_TrackGenreId comparing to const, rows: 74 (filtered 100%), Using where
+   - SUBQUERY on Genre (ALL), key: None comparing to None, rows: 25 (filtered 10%), Using where
+   - UNION on Track (ref), key: IFK_TrackGenreId comparing to const, rows: 35 (filtered 100%), Using where
+   - SUBQUERY on Genre (ALL), key: None comparing to None, rows: 25 (filtered 10%), Using where
+
+   Query with redundancy:
+   - PRIMARY on Track (ref), key: IFK_TrackGenreId comparing to const, rows: 74 (filtered 100%), Using where
+   - SUBQUERY on Genre (ALL), key: None comparing to None, rows: 25 (filtered 10%), Using where
+   - UNION on Track (ref), key: IFK_TrackGenreId comparing to const, rows: 35 (filtered 100%), Using where
+   - SUBQUERY on Genre (ALL), key: None comparing to None, rows: 25 (filtered 10%), Using where
+   - UNION RESULT on <union1,3> (ALL), key: None comparing to None, rows:  (filtered %), Using temporary
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Append  (cost=6.68..111.06 rows=280 width=20)
+   -   ->  Bitmap Heap Scan on track  (cost=6.68..53.43 rows=140 width=20)
+   -         Recheck Cond: (genreid = $0)
+   -         InitPlan 1 (returns $0)
+   -           ->  Seq Scan on genre  (cost=0.00..1.31 rows=1 width=4)
+   -                 Filter: ((name)::text = 'Classical'::text)
+   -         ->  Bitmap Index Scan on track_genre_id_idx  (cost=0.00..5.33 rows=140 width=0)
+   -               Index Cond: (genreid = $0)
+   -   ->  Bitmap Heap Scan on track track_1  (cost=6.68..53.43 rows=140 width=20)
+   -         Recheck Cond: (genreid = $1)
+   -         InitPlan 2 (returns $1)
+   -           ->  Seq Scan on genre genre_1  (cost=0.00..1.31 rows=1 width=4)
+   -                 Filter: ((name)::text = 'Hip Hop/Rap'::text)
+   -         ->  Bitmap Index Scan on track_genre_id_idx  (cost=0.00..5.33 rows=140 width=0)
+   -               Index Cond: (genreid = $1)
+
+   Query with redundancy:
+   - HashAggregate  (cost=112.46..115.26 rows=280 width=422)
+   -   Group Key: track.trackid, track.name
+   -   ->  Append  (cost=6.68..111.06 rows=280 width=422)
+   -         ->  Bitmap Heap Scan on track  (cost=6.68..53.43 rows=140 width=20)
+   -               Recheck Cond: (genreid = $0)
+   -               InitPlan 1 (returns $0)
+   -                 ->  Seq Scan on genre  (cost=0.00..1.31 rows=1 width=4)
+   -                       Filter: ((name)::text = 'Classical'::text)
+   -               ->  Bitmap Index Scan on track_genre_id_idx  (cost=0.00..5.33 rows=140 width=0)
+   -                     Index Cond: (genreid = $0)
+   -         ->  Bitmap Heap Scan on track track_1  (cost=6.68..53.43 rows=140 width=20)
+   -               Recheck Cond: (genreid = $1)
+   -               InitPlan 2 (returns $1)
+   -                 ->  Seq Scan on genre genre_1  (cost=0.00..1.31 rows=1 width=4)
+   -                       Filter: ((name)::text = 'Hip Hop/Rap'::text)
+   -               ->  Bitmap Index Scan on track_genre_id_idx  (cost=0.00..5.33 rows=140 width=0)
+   -                     Index Cond: (genreid = $1)
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 4 Error 35, 36
+Description: Using outer join that can be replaced by inner join. All tuples generated by the outer join are eliminated by the WHERE-condition.
+Correct query:
+SELECT t.TrackId, t.Name, il.InvoiceLineId
+FROM Track t 
+INNER JOIN InvoiceLine il ON t.TrackId = il.TrackId
+
+Query with redundancy:
+SELECT t.TrackId, t.Name, il.InvoiceLineId
+FROM Track t LEFT OUTER JOIN InvoiceLine il ON t.TrackId = il.TrackId
+WHERE il.InvoiceLineId IS NOT NULL
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Merge Join(Inner Join, MERGE:([t].[TrackId])=([il].[TrackId]), RESIDUAL:([LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId]=[LAS0084].[dbo].[Track].[TrackId] as [t].[TrackId])) (Est Rows: 2240, Est IO Cost: 0, Est CPU Time: 0,0178843, Avg Row Size: 219)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 215)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[IFK_InvoiceLineTrackId] AS [il]), ORDERED FORWARD) (Est Rows: 2240, Est IO Cost: 0,006087963, Est CPU Time: 0,002621, Avg Row Size: 15)
+
+   Query with redundancy:
+   -   |--Merge Join(Inner Join, MERGE:([t].[TrackId])=([il].[TrackId]), RESIDUAL:([LAS0084].[dbo].[Track].[TrackId] as [t].[TrackId]=[LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId])) (Est Rows: 2240, Est IO Cost: 0, Est CPU Time: 0,0178843, Avg Row Size: 219)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 215)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[InvoiceLine].[IFK_InvoiceLineTrackId] AS [il]), ORDERED FORWARD) (Est Rows: 2240, Est IO Cost: 0,006087963, Est CPU Time: 0,002621, Avg Row Size: 15)
+
+Oracle (different plans):
+   Correct Query:
+   - ----------------------------------------------------------------------------------
+   - | Id  | Operation          | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |             |  2240 | 64960 |    16   (0)| 00:00:01 |
+   - |*  1 |  HASH JOIN         |             |  2240 | 64960 |    16   (0)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| INVOICELINE |  2240 | 17920 |     5   (0)| 00:00:01 |
+   - |   3 |   TABLE ACCESS FULL| TRACK       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------------
+   - | Id  | Operation          | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |             |  2240 | 64960 |    16   (0)| 00:00:01 |
+   - |*  1 |  HASH JOIN         |             |  2240 | 64960 |    16   (0)| 00:00:01 |
+   - |*  2 |   TABLE ACCESS FULL| INVOICELINE |  2240 | 17920 |     5   (0)| 00:00:01 |
+   - |   3 |   TABLE ACCESS FULL| TRACK       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on il (index), key: IFK_InvoiceLineTrackId comparing to None, rows: 2240 (filtered 100%), Using index
+   - SIMPLE on t (eq_ref), key: PRIMARY comparing to las0084.il.TrackId, rows: 1 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on il (index), key: IFK_InvoiceLineTrackId comparing to None, rows: 2240 (filtered 90%), Using where; Using index
+   - SIMPLE on t (eq_ref), key: PRIMARY comparing to las0084.il.TrackId, rows: 1 (filtered 100%), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Hash Join  (cost=123.82..167.11 rows=2240 width=24)
+   -   Hash Cond: (il.trackid = t.trackid)
+   -   ->  Seq Scan on invoiceline il  (cost=0.00..37.40 rows=2240 width=8)
+   -   ->  Hash  (cost=80.03..80.03 rows=3503 width=20)
+   -         ->  Seq Scan on track t  (cost=0.00..80.03 rows=3503 width=20)
+
+   Query with redundancy:
+   - Hash Join  (cost=123.82..167.11 rows=2240 width=24)
+   -   Hash Cond: (il.trackid = t.trackid)
+   -   ->  Seq Scan on invoiceline il  (cost=0.00..37.40 rows=2240 width=8)
+   -         Filter: (invoicelineid IS NOT NULL)
+   -   ->  Hash  (cost=80.03..80.03 rows=3503 width=20)
+   -         ->  Seq Scan on track t  (cost=0.00..80.03 rows=3503 width=20)
+----------------------------------------------------------------------------------------------------
+Category: Joins and Unions
+Source: Semantic errors in SQL queries
+Reference: 4 Error 35
+Description: Condition on left table in left outer join that excludes all possible join partners.
+Correct query:
+SELECT t.TrackId, t.Name, il.InvoiceLineId
+FROM Track t
+INNER JOIN InvoiceLine il ON t.TrackId = il.TrackId
+WHERE il.InvoiceLineId = 52
+
+Query with redundancy:
+SELECT t.TrackId, t.Name, il.InvoiceLineId
+FROM Track t
+LEFT OUTER JOIN InvoiceLine il ON t.TrackId = il.TrackId
+WHERE il.InvoiceLineId = 52
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([il].[TrackId])) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,18E-06, Avg Row Size: 219)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine] AS [il]), SEEK:([il].[InvoiceLineId]=(52)) ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 15)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), SEEK:([t].[TrackId]=[LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId]) ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 215)
+
+   Query with redundancy:
+   -   |--Nested Loops(Inner Join, OUTER REFERENCES:([il].[TrackId])) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,18E-06, Avg Row Size: 219)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[InvoiceLine].[PK_InvoiceLine] AS [il]), SEEK:([il].[InvoiceLineId]=(52)) ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 15)
+   -        |--Clustered Index Seek(OBJECT:([LAS0084].[dbo].[Track].[PK_Track] AS [t]), SEEK:([t].[TrackId]=[LAS0084].[dbo].[InvoiceLine].[TrackId] as [il].[TrackId]) ORDERED FORWARD) (Est Rows: 1, Est IO Cost: 0,003125, Est CPU Time: 0,0001581, Avg Row Size: 215)
+
+Oracle (same plans):
+   Correct Query:
+   - ----------------------------------------------------------------------------------
+   - | Id  | Operation          | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |             |     1 |    29 |    16   (0)| 00:00:01 |
+   - |*  1 |  HASH JOIN         |             |     1 |    29 |    16   (0)| 00:00:01 |
+   - |*  2 |   TABLE ACCESS FULL| INVOICELINE |     1 |     8 |     5   (0)| 00:00:01 |
+   - |   3 |   TABLE ACCESS FULL| TRACK       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------------
+   - | Id  | Operation          | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |             |     1 |    29 |    16   (0)| 00:00:01 |
+   - |*  1 |  HASH JOIN         |             |     1 |    29 |    16   (0)| 00:00:01 |
+   - |*  2 |   TABLE ACCESS FULL| INVOICELINE |     1 |     8 |     5   (0)| 00:00:01 |
+   - |   3 |   TABLE ACCESS FULL| TRACK       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on il (const), key: PRIMARY comparing to const, rows: 1 (filtered 100%), None
+   - SIMPLE on t (const), key: PRIMARY comparing to const, rows: 1 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on il (const), key: PRIMARY comparing to const, rows: 1 (filtered 100%), None
+   - SIMPLE on t (const), key: PRIMARY comparing to const, rows: 1 (filtered 100%), None
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Nested Loop  (cost=0.56..16.60 rows=1 width=24)
+   -   ->  Index Scan using invoice_line_pkey on invoiceline il  (cost=0.28..8.30 rows=1 width=8)
+   -         Index Cond: (invoicelineid = 52)
+   -   ->  Index Scan using track_pkey on track t  (cost=0.28..8.30 rows=1 width=20)
+   -         Index Cond: (trackid = il.trackid)
+
+   Query with redundancy:
+   - Nested Loop  (cost=0.56..16.60 rows=1 width=24)
+   -   ->  Index Scan using invoice_line_pkey on invoiceline il  (cost=0.28..8.30 rows=1 width=8)
+   -         Index Cond: (invoicelineid = 52)
+   -   ->  Index Scan using track_pkey on track t  (cost=0.28..8.30 rows=1 width=20)
+   -         Index Cond: (trackid = il.trackid)
+----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: Semantic errors in SQL queries
+Reference: 2.5 Error 17
+Description: Applying COUNT() to a column that is unique.
+Correct query:
+SELECT Count(*)
+FROM Track
+
+Query with redundancy:
+SELECT Count(TrackId)
+FROM Track
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[Expr1003],0))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 11)
+   -        |--Stream Aggregate(DEFINE:([Expr1003]=Count(*))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0,0021023, Avg Row Size: 11)
+   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId])) (Est Rows: 3503, Est IO Cost: 0,0075694444, Est CPU Time: 0,0040103, Avg Row Size: 9)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[Expr1003],0))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 11)
+   -        |--Stream Aggregate(DEFINE:([Expr1003]=Count(*))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0,0021023, Avg Row Size: 11)
+   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId])) (Est Rows: 3503, Est IO Cost: 0,0075694444, Est CPU Time: 0,0040103, Avg Row Size: 9)
+
+Oracle (different plans):
+   Correct Query:
+   - --------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Cost (%CPU)| Time     |
+   - --------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     1 |    11   (0)| 00:00:01 |
+   - |   1 |  SORT AGGREGATE    |       |     1 |            |          |
+   - |   2 |   TABLE ACCESS FULL| TRACK |  3503 |    11   (0)| 00:00:01 |
+   - --------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     1 |     4 |    11   (0)| 00:00:01 |
+   - |   1 |  SORT AGGREGATE    |       |     1 |     4 |            |          |
+   - |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Track (index), key: IFK_TrackMediaTypeId comparing to None, rows: 3483 (filtered 100%), Using index
+
+   Query with redundancy:
+   - SIMPLE on Track (index), key: IFK_TrackMediaTypeId comparing to None, rows: 3483 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Aggregate  (cost=88.79..88.80 rows=1 width=8)
+   -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=0)
+
+   Query with redundancy:
+   - Aggregate  (cost=88.79..88.80 rows=1 width=8)
+   -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=4)
+----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: Semantic errors in SQL queries
+Reference: 2.5 Error 15, 2.6 Error 22
+Description: Unnecessary single distinct input value aggregations that could be replaced by SELECT DISTINCT.
+Correct query:
+SELECT DISTINCT(UnitPrice)
+FROM Track
+
+Query with redundancy:
+SELECT MAX(UnitPrice)
+FROM Track
+GROUP BY UnitPrice
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Hash Match(Aggregate, HASH:([LAS0084].[dbo].[Track].[UnitPrice]), RESIDUAL:([LAS0084].[dbo].[Track].[UnitPrice] = [LAS0084].[dbo].[Track].[UnitPrice])) (Est Rows: 2, Est IO Cost: 0, Est CPU Time: 0,040680025, Avg Row Size: 16)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 16)
+
+   Query with redundancy:
+   -   |--Hash Match(Aggregate, HASH:([LAS0084].[dbo].[Track].[UnitPrice]), RESIDUAL:([LAS0084].[dbo].[Track].[UnitPrice] = [LAS0084].[dbo].[Track].[UnitPrice]) DEFINE:([Expr1002]=MAX([LAS0084].[dbo].[Track].[UnitPrice]))) (Est Rows: 2, Est IO Cost: 0, Est CPU Time: 0,041180454, Avg Row Size: 16)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 16)
+
+Oracle (different plans):
+   Correct Query:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     2 |     8 |    12   (9)| 00:00:01 |
+   - |   1 |  HASH UNIQUE       |       |     2 |     8 |    12   (9)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     2 |     8 |    12   (9)| 00:00:01 |
+   - |   1 |  HASH GROUP BY     |       |     2 |     8 |    12   (9)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 100%), Using temporary
+
+   Query with redundancy:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 100%), Using temporary
+
+Postgre SQL (different plans):
+   Correct Query:
+   - HashAggregate  (cost=88.79..88.81 rows=2 width=5)
+   -   Group Key: unitprice
+   -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=5)
+
+   Query with redundancy:
+   - HashAggregate  (cost=97.54..97.56 rows=2 width=37)
+   -   Group Key: unitprice
+   -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=5)
+----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: Semantic errors in SQL queries
+Reference: 2.5 Error 16
+Description: Unnecessary DISTINCT in MIN / MAX aggregations.
+Correct query:
+SELECT MAX(UnitPrice)
+FROM Track
+
+Query with redundancy:
+SELECT MAX(DISTINCT UnitPrice)
+FROM Track
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Stream Aggregate(DEFINE:([Expr1002]=MAX([LAS0084].[dbo].[Track].[UnitPrice]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0,0021023, Avg Row Size: 16)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 16)
+
+   Query with redundancy:
+   -   |--Stream Aggregate(DEFINE:([Expr1002]=MAX([LAS0084].[dbo].[Track].[UnitPrice]))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0,0021023, Avg Row Size: 16)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 16)
+
+Oracle (same plans):
+   Correct Query:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     1 |     4 |    11   (0)| 00:00:01 |
+   - |   1 |  SORT AGGREGATE    |       |     1 |     4 |            |          |
+   - |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     1 |     4 |    11   (0)| 00:00:01 |
+   - |   1 |  SORT AGGREGATE    |       |     1 |     4 |            |          |
+   - |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 100%), None
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Aggregate  (cost=88.79..88.80 rows=1 width=32)
+   -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=5)
+
+   Query with redundancy:
+   - Aggregate  (cost=88.79..88.80 rows=1 width=32)
+   -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=5)
+----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: null
+Reference: null
+Description: Unnecessary replacing GROUP BY in MIN / MAX aggregations with subquery.
+Correct query:
+SELECT CustomerId, SUM(Total)
+FROM Invoice
+GROUP BY CustomerId
+
+Query with redundancy:
+SELECT DISTINCT i1.CustomerId, (
+SELECT SUM(i2.Total)
+FROM Invoice AS i2
+WHERE i1.CustomerId = i2.CustomerId
+)
+FROM Invoice AS i1
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Stream Aggregate(GROUP BY:([LAS0084].[dbo].[Invoice].[CustomerId]) DEFINE:([Expr1002]=SUM([LAS0084].[dbo].[Invoice].[Total]))) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 0,0002767, Avg Row Size: 28)
+   -        |--Sort(ORDER BY:([LAS0084].[dbo].[Invoice].[CustomerId] ASC)) (Est Rows: 412, Est IO Cost: 0,011261261, Est CPU Time: 0,0056830077, Avg Row Size: 20)
+   -             |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice])) (Est Rows: 412, Est IO Cost: 0,0075694444, Est CPU Time: 0,0006102, Avg Row Size: 20)
+
+   Query with redundancy:
+   -   |--Sort(DISTINCT ORDER BY:([i1].[CustomerId] ASC, [Expr1004] ASC)) (Est Rows: 394,36353, Est IO Cost: 0,011261261, Est CPU Time: 0,0056830156, Avg Row Size: 28)
+   -        |--Compute Scalar(DEFINE:([Expr1004]=[Expr1002])) (Est Rows: 412, Est IO Cost: 0, Est CPU Time: 4,12E-05, Avg Row Size: 45)
+   -             |--Merge Join(Right Outer Join, MERGE:([i2].[CustomerId])=([i1].[CustomerId]), RESIDUAL:([LAS0084].[dbo].[Invoice].[CustomerId] as [i1].[CustomerId]=[LAS0084].[dbo].[Invoice].[CustomerId] as [i2].[CustomerId])) (Est Rows: 412, Est IO Cost: 0, Est CPU Time: 0,0066303, Avg Row Size: 28)
+   -                  |--Stream Aggregate(GROUP BY:([i2].[CustomerId]) DEFINE:([Expr1002]=SUM([LAS0084].[dbo].[Invoice].[Total] as [i2].[Total]))) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 0,0002767, Avg Row Size: 28)
+   -                  |    |--Sort(ORDER BY:([i2].[CustomerId] ASC)) (Est Rows: 412, Est IO Cost: 0,011261261, Est CPU Time: 0,0056830077, Avg Row Size: 20)
+   -                  |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[PK_Invoice] AS [i2])) (Est Rows: 412, Est IO Cost: 0,0075694444, Est CPU Time: 0,0006102, Avg Row Size: 20)
+   -                  |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId] AS [i1]), ORDERED FORWARD) (Est Rows: 412, Est IO Cost: 0,003125, Est CPU Time: 0,0006102, Avg Row Size: 11)
+
+Oracle (different plans):
+   Correct Query:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation          | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |         |    59 |   413 |     4  (25)| 00:00:01 |
+   - |   1 |  HASH GROUP BY     |         |    59 |   413 |     4  (25)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| INVOICE |   412 |  2884 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - -----------------------------------------------------------------------------------
+   - | Id  | Operation               | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+   - -----------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT        |         |  2462 | 54164 |     7  (15)| 00:00:01 |
+   - |   1 |  HASH UNIQUE            |         |  2462 | 54164 |     7  (15)| 00:00:01 |
+   - |   2 |   HASH GROUP BY         |         |  2462 | 54164 |     7  (15)| 00:00:01 |
+   - |*  3 |    HASH JOIN RIGHT OUTER|         |  2878 | 63316 |     6   (0)| 00:00:01 |
+   - |   4 |     TABLE ACCESS FULL   | INVOICE |   412 |  2884 |     3   (0)| 00:00:01 |
+   - |   5 |     TABLE ACCESS FULL   | INVOICE |   412 |  6180 |     3   (0)| 00:00:01 |
+   - -----------------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Invoice (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), None
+
+   Query with redundancy:
+   - PRIMARY on i1 (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), Using index; Using temporary
+   - DEPENDENT SUBQUERY on i2 (ref), key: IFK_InvoiceCustomerId comparing to las0084.i1.CustomerId, rows: 6 (filtered 100%), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - HashAggregate  (cost=12.18..12.92 rows=59 width=36)
+   -   Group Key: customerid
+   -   ->  Seq Scan on invoice  (cost=0.00..10.12 rows=412 width=10)
+
+   Query with redundancy:
+   - Unique  (cost=4457.50..4460.59 rows=59 width=36)
+   -   ->  Sort  (cost=4457.50..4458.53 rows=412 width=36)
+   -         Sort Key: i1.customerid, ((SubPlan 1))
+   -         ->  Seq Scan on invoice i1  (cost=0.00..4439.61 rows=412 width=36)
+   -               SubPlan 1
+   -                 ->  Aggregate  (cost=10.74..10.75 rows=1 width=32)
+   -                       ->  Bitmap Heap Scan on invoice i2  (cost=4.33..10.72 rows=7 width=6)
+   -                             Recheck Cond: (i1.customerid = customerid)
+   -                             ->  Bitmap Index Scan on invoice_customer_id_idx  (cost=0.00..4.33 rows=7 width=0)
+   -                                   Index Cond: (i1.customerid = customerid)
+----------------------------------------------------------------------------------------------------
+Category: Aggregations
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 19
+Description: Using aggregation in subquery on id is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT Invoice.InvoiceId, 1
+FROM Invoice
+
+Query with redundancy:
+SELECT Invoice.InvoiceId, (
+SELECT COUNT(*)
+FROM Customer
+WHERE Customer.CustomerId = Invoice.CustomerId
+)
+FROM Invoice
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=(1))) (Est Rows: 412, Est IO Cost: 0, Est CPU Time: 4,12E-05, Avg Row Size: 15)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId])) (Est Rows: 412, Est IO Cost: 0,003125, Est CPU Time: 0,0006102, Avg Row Size: 11)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1006]=CASE WHEN [Expr1004] IS NULL THEN (0) ELSE [Expr1004] END)) (Est Rows: 412, Est IO Cost: 0, Est CPU Time: 4,12E-05, Avg Row Size: 15)
+   -        |--Merge Join(Right Outer Join, MERGE:([LAS0084].[dbo].[Customer].[CustomerId])=([LAS0084].[dbo].[Invoice].[CustomerId]), RESIDUAL:([LAS0084].[dbo].[Customer].[CustomerId]=[LAS0084].[dbo].[Invoice].[CustomerId])) (Est Rows: 412, Est IO Cost: 0, Est CPU Time: 0,0066303, Avg Row Size: 15)
+   -             |--Compute Scalar(DEFINE:([Expr1004]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END)) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 5,9E-06, Avg Row Size: 15)
+   -             |    |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer]), ORDERED FORWARD) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 11)
+   -             |--Index Scan(OBJECT:([LAS0084].[dbo].[Invoice].[IFK_InvoiceCustomerId]), ORDERED FORWARD) (Est Rows: 412, Est IO Cost: 0,003125, Est CPU Time: 0,0006102, Avg Row Size: 15)
+
+Oracle (different plans):
+   Correct Query:
+   - -----------------------------------------------------------------------------
+   - | Id  | Operation         | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+   - -----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |         |   412 |  1648 |     3   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| INVOICE |   412 |  1648 |     3   (0)| 00:00:01 |
+   - -----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - -------------------------------------------------------------------------------
+   - | Id  | Operation          | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - -------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |          |   412 |  2884 |   180   (0)| 00:00:01 |
+   - |   1 |  SORT AGGREGATE    |          |     1 |     3 |            |          |
+   - |*  2 |   TABLE ACCESS FULL| CUSTOMER |     1 |     3 |     3   (0)| 00:00:01 |
+   - |   3 |  TABLE ACCESS FULL | INVOICE  |   412 |  2884 |     3   (0)| 00:00:01 |
+   - -------------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Invoice (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), Using index
+
+   Query with redundancy:
+   - PRIMARY on Invoice (index), key: IFK_InvoiceCustomerId comparing to None, rows: 412 (filtered 100%), Using index
+   - DEPENDENT SUBQUERY on Customer (eq_ref), key: PRIMARY comparing to las0084.Invoice.CustomerId, rows: 1 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on invoice  (cost=0.00..10.12 rows=412 width=8)
+
+   Query with redundancy:
+   - Seq Scan on invoice  (cost=0.00..1143.12 rows=412 width=12)
+   -   SubPlan 1
+   -     ->  Aggregate  (cost=2.74..2.75 rows=1 width=8)
+   -           ->  Seq Scan on customer  (cost=0.00..2.74 rows=1 width=0)
+   -                 Filter: (customerid = invoice.customerid)
+----------------------------------------------------------------------------------------------------
+Category: Grouping
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 19
+Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT ArtistId, '1'
+FROM Artist
+
+Query with redundancy:
+SELECT ArtistId, COUNT(*)
+FROM Artist
+GROUP BY ArtistId
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]='1')) (Est Rows: 275, Est IO Cost: 0, Est CPU Time: 2,75E-05, Avg Row Size: 15)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Artist].[PK_Artist])) (Est Rows: 275, Est IO Cost: 0,0038657407, Est CPU Time: 0,0004595, Avg Row Size: 11)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END)) (Est Rows: 275, Est IO Cost: 0, Est CPU Time: 2,75E-05, Avg Row Size: 15)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Artist].[PK_Artist])) (Est Rows: 275, Est IO Cost: 0,0038657407, Est CPU Time: 0,0004595, Avg Row Size: 11)
+
+Oracle (different plans):
+   Correct Query:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation         | Name   | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |        |   275 |  1100 |     3   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| ARTIST |   275 |  1100 |     3   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - -----------------------------------------------------------------------------
+   - | Id  | Operation          | Name   | Rows  | Bytes | Cost (%CPU)| Time     |
+   - -----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |        |   275 |  1100 |     4  (25)| 00:00:01 |
+   - |   1 |  HASH GROUP BY     |        |   275 |  1100 |     4  (25)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| ARTIST |   275 |  1100 |     3   (0)| 00:00:01 |
+   - -----------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Artist (index), key: PRIMARY comparing to None, rows: 275 (filtered 100%), Using index
+
+   Query with redundancy:
+   - SIMPLE on Artist (index), key: PRIMARY comparing to None, rows: 275 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on artist  (cost=0.00..4.75 rows=275 width=36)
+
+   Query with redundancy:
+   - HashAggregate  (cost=6.13..8.88 rows=275 width=12)
+   -   Group Key: artistid
+   -   ->  Seq Scan on artist  (cost=0.00..4.75 rows=275 width=4)
+----------------------------------------------------------------------------------------------------
+Category: Grouping
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 19
+Description: Using aggregation with group by on ids is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT ArtistId, AlbumId, '1' AS Count
+FROM Album
+
+Query with redundancy:
+SELECT ArtistId, AlbumId, COUNT(*) AS Count
+FROM Album
+GROUP BY ArtistId, AlbumId
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]='1')) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 3,47E-05, Avg Row Size: 19)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IFK_AlbumArtistId])) (Est Rows: 347, Est IO Cost: 0,003125, Est CPU Time: 0,0005387, Avg Row Size: 15)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN (0) IS NULL THEN (0) ELSE (1) END)) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 3,47E-05, Avg Row Size: 19)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IFK_AlbumArtistId])) (Est Rows: 347, Est IO Cost: 0,003125, Est CPU Time: 0,0005387, Avg Row Size: 15)
+
+Oracle (different plans):
+   Correct Query:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |   347 |  2776 |     3   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| ALBUM |   347 |  2776 |     3   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |   347 |  2776 |     4  (25)| 00:00:01 |
+   - |   1 |  HASH GROUP BY     |       |   347 |  2776 |     4  (25)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| ALBUM |   347 |  2776 |     3   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Album (index), key: IFK_AlbumArtistId comparing to None, rows: 347 (filtered 100%), Using index
+
+   Query with redundancy:
+   - SIMPLE on Album (index), key: IFK_AlbumArtistId comparing to None, rows: 347 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on album  (cost=0.00..6.47 rows=347 width=40)
+
+   Query with redundancy:
+   - HashAggregate  (cost=8.21..11.68 rows=347 width=16)
+   -   Group Key: albumid
+   -   ->  Seq Scan on album  (cost=0.00..6.47 rows=347 width=8)
+----------------------------------------------------------------------------------------------------
+Category: Grouping
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 18
+Description: Unnecessary GROUP BY in EXISTS subquery.
+Correct query:
+SELECT *
+FROM Album
+WHERE EXISTS (
+    SELECT 1
+    FROM Track
+    WHERE TrackId = Track.TrackId AND Album.Title = 'Outbreak'
+)
+
+Query with redundancy:
+SELECT *
+FROM Album
+WHERE EXISTS (
+    SELECT 1
+    FROM Track
+    WHERE TrackId = Track.TrackId AND Album.Title = 'Outbreak'
+    GROUP BY TrackId
+)
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Nested Loops(Left Semi Join) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,18E-06, Avg Row Size: 64)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), WHERE:([LAS0084].[dbo].[Album].[Title]=N'Outbreak')) (Est Rows: 1, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 64)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId]),  WHERE:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId])) (Est Rows: 1, Est IO Cost: 0,0075694444, Est CPU Time: 0,0040103, Avg Row Size: 11)
+
+   Query with redundancy:
+   -   |--Nested Loops(Left Semi Join) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 4,18E-06, Avg Row Size: 64)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), WHERE:([LAS0084].[dbo].[Album].[Title]=N'Outbreak')) (Est Rows: 1, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 64)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId]),  WHERE:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId])) (Est Rows: 1, Est IO Cost: 0,0075694444, Est CPU Time: 0,0040103, Avg Row Size: 11)
+
+Oracle (same plans):
+   Correct Query:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     1 |    32 |     5   (0)| 00:00:01 |
+   - |*  1 |  FILTER            |       |       |       |            |          |
+   - |*  2 |   TABLE ACCESS FULL| ALBUM |     1 |    32 |     3   (0)| 00:00:01 |
+   - |*  3 |   TABLE ACCESS FULL| TRACK |     1 |     4 |     2   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |     1 |    32 |     5   (0)| 00:00:01 |
+   - |*  1 |  FILTER            |       |       |       |            |          |
+   - |*  2 |   TABLE ACCESS FULL| ALBUM |     1 |    32 |     3   (0)| 00:00:01 |
+   - |*  3 |   TABLE ACCESS FULL| TRACK |     1 |     4 |     2   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Album (ALL), key: None comparing to None, rows: 347 (filtered 10%), None
+   - SIMPLE on <subquery2> (eq_ref), key: <auto_distinct_key> comparing to las0084.Album.Title, rows: 1 (filtered 100%), Using where
+   - MATERIALIZED on Track (index), key: IFK_TrackMediaTypeId comparing to None, rows: 3483 (filtered 100%), Using index
+
+   Query with redundancy:
+   - SIMPLE on Album (ALL), key: None comparing to None, rows: 347 (filtered 10%), None
+   - SIMPLE on <subquery2> (eq_ref), key: <auto_distinct_key> comparing to las0084.Album.Title, rows: 1 (filtered 100%), Using where
+   - MATERIALIZED on Track (index), key: IFK_TrackMediaTypeId comparing to None, rows: 3483 (filtered 100%), Using index
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Nested Loop Semi Join  (cost=0.00..87.39 rows=1 width=31)
+   -   ->  Seq Scan on album  (cost=0.00..7.34 rows=1 width=31)
+   -         Filter: ((title)::text = 'Outbreak'::text)
+   -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=0)
+   -         Filter: (trackid IS NOT NULL)
+
+   Query with redundancy:
+   - Nested Loop Semi Join  (cost=0.00..87.39 rows=1 width=31)
+   -   ->  Seq Scan on album  (cost=0.00..7.34 rows=1 width=31)
+   -         Filter: ((title)::text = 'Outbreak'::text)
+   -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=0)
+   -         Filter: (trackid IS NOT NULL)
+----------------------------------------------------------------------------------------------------
+Category: Case
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 19
+Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT TrackId, 'Yes' AS IsUnique
+FROM Track
+
+Query with redundancy:
+SELECT TrackId,
+CASE
+    WHEN Count(Name) = 1 THEN 'Yes' ELSE 'No'
+END AS IsUnique
+FROM Track
+GROUP BY TrackId
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]='Yes')) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,0003503, Avg Row Size: 16)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Track].[IFK_TrackMediaTypeId])) (Est Rows: 3503, Est IO Cost: 0,0075694444, Est CPU Time: 0,0040103, Avg Row Size: 11)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1003]=CASE WHEN CASE WHEN [LAS0084].[dbo].[Track].[Name] IS NULL THEN (0) ELSE (1) END=(1) THEN 'Yes' ELSE 'No' END)) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,0003503, Avg Row Size: 16)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 215)
+
+Oracle (different plans):
+   Correct Query:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |  3503 | 14012 |    11   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| TRACK |  3503 | 14012 |    11   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |  3503 | 73563 |    12   (9)| 00:00:01 |
+   - |   1 |  HASH GROUP BY     |       |  3503 | 73563 |    12   (9)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| TRACK |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Track (index), key: IFK_TrackMediaTypeId comparing to None, rows: 3483 (filtered 100%), Using index
+
+   Query with redundancy:
+   - SIMPLE on Track (index), key: PRIMARY comparing to None, rows: 3483 (filtered 100%), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on track  (cost=0.00..80.03 rows=3503 width=36)
+
+   Query with redundancy:
+   - HashAggregate  (cost=97.54..141.33 rows=3503 width=36)
+   -   Group Key: trackid
+   -   ->  Seq Scan on track  (cost=0.00..80.03 rows=3503 width=20)
+----------------------------------------------------------------------------------------------------
+Category: Case
+Source: Semantic errors in SQL queries
+Reference: 2.4 Error 12, 4 Error 34
+Description: Using LIKE without wildcards.
+Correct query:
+SELECT FirstName, LastName,
+CASE
+WHEN Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Query with redundancy:
+SELECT FirstName, LastName,
+CASE
+    WHEN Country LIKE 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN [LAS0084].[dbo].[Customer].[Country]=N'USA' THEN 'Yes' ELSE 'No' END)) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 5,9E-06, Avg Row Size: 76)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer])) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 115)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN [LAS0084].[dbo].[Customer].[Country] like N'USA' THEN 'Yes' ELSE 'No' END)) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 5,9E-06, Avg Row Size: 76)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer])) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 115)
+
+Oracle (same plans):
+   Correct Query:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |    59 |  1416 |     3   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| CUSTOMER |    59 |  1416 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |    59 |  1416 |     3   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| CUSTOMER |    59 |  1416 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 100%), None
+
+Postgre SQL (same plans):
+   Correct Query:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=59 width=46)
+
+   Query with redundancy:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=59 width=46)
+----------------------------------------------------------------------------------------------------
+Category: Case
+Description: Conditioning attribute to be from any of its unique values.
+Correct query:
+SELECT Name, TrackId, 'Yes'
+FROM Track
+
+Query with redundancy:
+SELECT Name, TrackId, CASE
+    WHEN TrackId IN (SELECT TrackId FROM Track) THEN 'Yes' ELSE 'No'
+END
+FROM Track
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]='Yes')) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,0003503, Avg Row Size: 218)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track])) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 215)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1004]=CASE WHEN [Expr1005] THEN 'Yes' ELSE 'No' END)) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,0003503, Avg Row Size: 218)
+   -        |--Merge Join(Left Semi Join, MERGE:([LAS0084].[dbo].[Track].[TrackId])=([LAS0084].[dbo].[Track].[TrackId]), RESIDUAL:([LAS0084].[dbo].[Track].[TrackId]=[LAS0084].[dbo].[Track].[TrackId])) (Est Rows: 3503, Est IO Cost: 0, Est CPU Time: 0,0241659, Avg Row Size: 216)
+   -             |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 215)
+   -             |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Track].[PK_Track]), ORDERED FORWARD) (Est Rows: 3503, Est IO Cost: 0,040162038, Est CPU Time: 0,0040103, Avg Row Size: 11)
+
+Oracle (different plans):
+   Correct Query:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| TRACK |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |  3503 | 73563 | 19404   (1)| 00:00:01 |
+   - |*  1 |  TABLE ACCESS FULL| TRACK |     1 |     4 |    11   (0)| 00:00:01 |
+   - |   2 |  TABLE ACCESS FULL| TRACK |  3503 | 73563 |    11   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Track (ALL), key: None comparing to None, rows: 3483 (filtered 100%), None
+
+   Query with redundancy:
+   - PRIMARY on Track (ALL), key: None comparing to None, rows: 3483 (filtered 100%), None
+   - SUBQUERY on Track (index), key: IFK_TrackMediaTypeId comparing to None, rows: 3483 (filtered 100%), Using index
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on track  (cost=0.00..80.03 rows=3503 width=52)
+
+   Query with redundancy:
+   - Seq Scan on track  (cost=88.79..177.57 rows=3503 width=52)
+   -   SubPlan 1
+   -     ->  Seq Scan on track track_1  (cost=0.00..80.03 rows=3503 width=4)
+----------------------------------------------------------------------------------------------------
+Category: Case
+Source: Semantic errors in SQL queries
+Reference: 2.4. Error 8
+Description: Duplicated (redundant) conditions with OR operator.
+Correct query:
+SELECT FirstName, LastName,
+CASE
+    WHEN Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Query with redundancy:
+SELECT FirstName, LastName,
+CASE
+    WHEN Country = 'USA' OR Country = 'USA' THEN 'Yes' ELSE 'No'
+END AS IsFromUSA
+FROM Customer
+
+Results:
+
+SQL Server (same plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN [LAS0084].[dbo].[Customer].[Country]=N'USA' THEN 'Yes' ELSE 'No' END)) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 5,9E-06, Avg Row Size: 76)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer])) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 115)
+
+   Query with redundancy:
+   -   |--Compute Scalar(DEFINE:([Expr1002]=CASE WHEN [LAS0084].[dbo].[Customer].[Country]=N'USA' THEN 'Yes' ELSE 'No' END)) (Est Rows: 59, Est IO Cost: 0, Est CPU Time: 5,9E-06, Avg Row Size: 76)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Customer].[PK_Customer])) (Est Rows: 59, Est IO Cost: 0,0038657407, Est CPU Time: 0,0002219, Avg Row Size: 115)
+
+Oracle (same plans):
+   Correct Query:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |    59 |  1416 |     3   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| CUSTOMER |    59 |  1416 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ------------------------------------------------------------------------------
+   - | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ------------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |          |    59 |  1416 |     3   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| CUSTOMER |    59 |  1416 |     3   (0)| 00:00:01 |
+   - ------------------------------------------------------------------------------
+
+My SQL (same plans):
+   Correct Query:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 100%), None
+
+   Query with redundancy:
+   - SIMPLE on Customer (ALL), key: None comparing to None, rows: 59 (filtered 100%), None
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on customer  (cost=0.00..2.74 rows=59 width=46)
+
+   Query with redundancy:
+   - Seq Scan on customer  (cost=0.00..2.88 rows=59 width=46)
+----------------------------------------------------------------------------------------------------
+Category: Window
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 19
+Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT ArtistId, '1'
+FROM Artist
+
+Query with redundancy:
+SELECT ArtistId, COUNT(*) OVER (PARTITION BY ArtistId) AS Count
+FROM Artist
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]='1')) (Est Rows: 275, Est IO Cost: 0, Est CPU Time: 2,75E-05, Avg Row Size: 15)
+   -        |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Artist].[PK_Artist])) (Est Rows: 275, Est IO Cost: 0,0038657407, Est CPU Time: 0,0004595, Avg Row Size: 11)
+
+   Query with redundancy:
+   -   |--Nested Loops(Inner Join) (Est Rows: 275, Est IO Cost: 0, Est CPU Time: 0,005929, Avg Row Size: 15)
+   -        |--Table Spool (Est Rows: 275, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 11)
+   -        |    |--Segment (Est Rows: 275, Est IO Cost: 0, Est CPU Time: 0,00077, Avg Row Size: 11)
+   -        |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Artist].[PK_Artist]), ORDERED FORWARD) (Est Rows: 275, Est IO Cost: 0,0038657407, Est CPU Time: 0,0004595, Avg Row Size: 11)
+   -        |--Nested Loops(Inner Join, WHERE:((1))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 7,7E-05, Avg Row Size: 11)
+   -             |--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[Expr1004],0))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 7,7E-06, Avg Row Size: 11)
+   -             |    |--Stream Aggregate(DEFINE:([Expr1004]=Count(*))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 7,7E-05, Avg Row Size: 11)
+   -             |         |--Table Spool (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 11)
+   -             |--Table Spool (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 11)
+
+Oracle (different plans):
+   Correct Query:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation         | Name   | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |        |   275 |  1100 |     3   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| ARTIST |   275 |  1100 |     3   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+   Query with redundancy:
+   - -----------------------------------------------------------------------------
+   - | Id  | Operation          | Name   | Rows  | Bytes | Cost (%CPU)| Time     |
+   - -----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |        |   275 |  1100 |     4  (25)| 00:00:01 |
+   - |   1 |  WINDOW SORT       |        |   275 |  1100 |     4  (25)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| ARTIST |   275 |  1100 |     3   (0)| 00:00:01 |
+   - -----------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Artist (index), key: PRIMARY comparing to None, rows: 275 (filtered 100%), Using index
+
+   Query with redundancy:
+   - SIMPLE on Artist (index), key: PRIMARY comparing to None, rows: 275 (filtered 100%), Using index; Using filesort
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on artist  (cost=0.00..4.75 rows=275 width=36)
+
+   Query with redundancy:
+   - WindowAgg  (cost=15.89..20.70 rows=275 width=12)
+   -   ->  Sort  (cost=15.89..16.58 rows=275 width=4)
+   -         Sort Key: artistid
+   -         ->  Seq Scan on artist  (cost=0.00..4.75 rows=275 width=4)
+----------------------------------------------------------------------------------------------------
+Category: Window
+Source: Semantic errors in SQL queries
+Reference: 2.6 Error 19
+Description: Using aggregation with group by on ids is unnecessary and redundant because there is always only one tuple per id.
+Correct query:
+SELECT ArtistId, AlbumId, '1' AS Count
+FROM Album
+
+Query with redundancy:
+SELECT ArtistId, AlbumId, COUNT(*) OVER (PARTITION BY ArtistId, AlbumId) AS Count
+FROM Album
+
+Results:
+
+SQL Server (different plans):
+   Correct Query:
+   -   |--Compute Scalar(DEFINE:([Expr1002]='1')) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 3,47E-05, Avg Row Size: 19)
+   -        |--Index Scan(OBJECT:([LAS0084].[dbo].[Album].[IFK_AlbumArtistId])) (Est Rows: 347, Est IO Cost: 0,003125, Est CPU Time: 0,0005387, Avg Row Size: 15)
+
+   Query with redundancy:
+   -   |--Nested Loops(Inner Join) (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0,00748132, Avg Row Size: 19)
+   -        |--Table Spool (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 15)
+   -        |    |--Segment (Est Rows: 347, Est IO Cost: 0, Est CPU Time: 0,0009716, Avg Row Size: 15)
+   -        |         |--Clustered Index Scan(OBJECT:([LAS0084].[dbo].[Album].[PK_Album]), ORDERED FORWARD) (Est Rows: 347, Est IO Cost: 0,0046064816, Est CPU Time: 0,0005387, Avg Row Size: 15)
+   -        |--Nested Loops(Inner Join, WHERE:((1))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 9,716E-05, Avg Row Size: 15)
+   -             |--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[Expr1004],0))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 9,716E-06, Avg Row Size: 15)
+   -             |    |--Stream Aggregate(DEFINE:([Expr1004]=Count(*))) (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 9,716E-05, Avg Row Size: 15)
+   -             |         |--Table Spool (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 15)
+   -             |--Table Spool (Est Rows: 1, Est IO Cost: 0, Est CPU Time: 0, Avg Row Size: 15)
+
+Oracle (different plans):
+   Correct Query:
+   - ---------------------------------------------------------------------------
+   - | Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ---------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT  |       |   347 |  2776 |     3   (0)| 00:00:01 |
+   - |   1 |  TABLE ACCESS FULL| ALBUM |   347 |  2776 |     3   (0)| 00:00:01 |
+   - ---------------------------------------------------------------------------
+
+   Query with redundancy:
+   - ----------------------------------------------------------------------------
+   - | Id  | Operation          | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+   - ----------------------------------------------------------------------------
+   - |   0 | SELECT STATEMENT   |       |   347 |  2776 |     4  (25)| 00:00:01 |
+   - |   1 |  WINDOW SORT       |       |   347 |  2776 |     4  (25)| 00:00:01 |
+   - |   2 |   TABLE ACCESS FULL| ALBUM |   347 |  2776 |     3   (0)| 00:00:01 |
+   - ----------------------------------------------------------------------------
+
+My SQL (different plans):
+   Correct Query:
+   - SIMPLE on Album (index), key: IFK_AlbumArtistId comparing to None, rows: 347 (filtered 100%), Using index
+
+   Query with redundancy:
+   - SIMPLE on Album (index), key: IFK_AlbumArtistId comparing to None, rows: 347 (filtered 100%), Using index; Using filesort
+
+Postgre SQL (different plans):
+   Correct Query:
+   - Seq Scan on album  (cost=0.00..6.47 rows=347 width=40)
+
+   Query with redundancy:
+   - WindowAgg  (cost=21.11..28.05 rows=347 width=16)
+   -   ->  Sort  (cost=21.11..21.98 rows=347 width=8)
+   -         Sort Key: artistid, albumid
+   -         ->  Seq Scan on album  (cost=0.00..6.47 rows=347 width=8)
+----------------------------------------------------------------------------------------------------

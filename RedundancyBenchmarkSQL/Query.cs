@@ -9,13 +9,14 @@ namespace RedundancyBenchmarkSQL
 {
     internal class Query
     {
-        string Category;
+        public string Category;
+        public string Description;
+
         string Source = "";
         string Reference = "";
-        string Description;
 
-        //string CorrectQuery;
-        //string RedundantQuery;
+        public bool Filter { get; set; } = false;
+
         Dictionary<string, string> DefaultQueries = new Dictionary<string, string>();
 
         Dictionary<string, string> SqlServerQueries = new Dictionary<string, string>();
@@ -33,13 +34,15 @@ namespace RedundancyBenchmarkSQL
         public bool MySqlComparison { get; set; } = false;
         public bool PostgreSqlComparison { get; set; } = false;
 
-        public Query(string category, string description, string correctQuery, string redundantQuery)
+        public Query(string category, string description, string correctQuery, string redundantQuery, bool filterQuery)
         {
             Category = category;
             Description = description;
 
             DefaultQueries.Add("correct", correctQuery);
             DefaultQueries.Add("redundant", redundantQuery);
+
+            Filter = filterQuery;
         }
 
         public void ResetQueryResult()
@@ -273,13 +276,13 @@ namespace RedundancyBenchmarkSQL
                 Console.WriteLine("   Correct Query:");
                 foreach (string operation in OraclePlan["correct"])
                 {
-                    Console.WriteLine("   " + operation);
+                    Console.WriteLine("   - " + operation);
                 }
 
                 Console.WriteLine("\n   Query with redundancy:");
                 foreach (string operation in OraclePlan["redundant"])
                 {
-                    Console.WriteLine("   " + operation);
+                    Console.WriteLine("   - " + operation);
                 }
             }
 

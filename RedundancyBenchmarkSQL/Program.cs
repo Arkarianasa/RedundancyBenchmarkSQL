@@ -19,13 +19,23 @@ namespace SQLRedundancyBenchmark
 
             string filePath = "../../../Resources/queries.sql";
 
+            string benchmarkLevel = "loose";
+            //string benchmarkLevel = "strict";
+
+            bool filterQueries = true;
+
+            string filtered = "";
+
+            if (filterQueries)
+                filtered += "_filtered";
+
             // Example connection strings for different databases
             string sqlServerConnectionString = "Server=dbsys.cs.vsb.cz\\STUDENT;Database=myDataBase;User Id=myUsername;Password=myPassword;Encrypt=True;TrustServerCertificate=True;";
             string oracleConnectionString = "Data Source=dbsys.cs.vsb.cz\\oracle;User Id=myUsername;Password=myPassword;";
             string mySqlConnectionString = "Server=myServerAddress;Port=myPort;Database=myDataBase;Uid=myUsername;Pwd=myPassword;";
             string postgreConnectionString = "Host=dbsys.cs.vsb.cz;Port=5432;Username=myUsername;Password=myPassword;Database=myDataBase;";
 
-            Benchmark benchmark = new Benchmark(filePath);
+            Benchmark benchmark = new Benchmark(filePath, benchmarkLevel, filterQueries);
             
             benchmark.SetDatabaseSystem("Microsoft.Data.SqlClient", sqlServerConnectionString);
             benchmark.RunBenchmark();
@@ -48,14 +58,14 @@ namespace SQLRedundancyBenchmark
             TextWriter originalOutput = Console.Out;
 
             // Save results to .txt file
-            using (StreamWriter writer = new StreamWriter("../../../Output/benchmark_without_indexes.txt"))
+            using (StreamWriter writer = new StreamWriter("../../../Output/benchmark_without_indexes_" + benchmarkLevel + filtered + ".txt"))
             {
                 Console.SetOut(writer);
 
                 // Get the current date and time
                 DateTime currentDateTime = DateTime.Now;
 
-                Console.WriteLine("Benchmark without indexes from: " + currentDateTime + "\n");
+                Console.WriteLine("Benchmark (" + benchmarkLevel + ") without indexes from: " + currentDateTime + "\n");
 
                 benchmark.PrintBenchmark();
                 Console.WriteLine();
@@ -64,11 +74,16 @@ namespace SQLRedundancyBenchmark
                 writer.Flush();
             }
 
+            // Save Results to excel file
+            benchmark.GenerateExcel("../../../Output/benchmark_without_indexes_" + benchmarkLevel + filtered + ".xlsx");
+
             // Restore the original standard output stream
             Console.SetOut(originalOutput);
 
-            Console.WriteLine("\nFile Output/benchmark_without_indexes.txt created.\n");
+            Console.WriteLine("\nFile Output/benchmark_without_indexes_" + benchmarkLevel + filtered + ".txt created.\n");
+            Console.WriteLine("File Output/benchmark_without_indexes_" + benchmarkLevel + filtered + ".xlsx created.\n");
 
+            // Reset query results
             benchmark.ResetBenchmark();
 
             benchmark.SetDatabaseSystem("Microsoft.Data.SqlClient", sqlServerConnectionString);
@@ -97,14 +112,14 @@ namespace SQLRedundancyBenchmark
             //benchmark.PrintQueries();
 
             // Save results to .txt file
-            using (StreamWriter writer = new StreamWriter("../../../Output/benchmark_with_indexes.txt"))
+            using (StreamWriter writer = new StreamWriter("../../../Output/benchmark_with_indexes_" + benchmarkLevel + filtered + ".txt"))
             {
                 Console.SetOut(writer);
 
                 // Get the current date and time
                 DateTime currentDateTime = DateTime.Now;
 
-                Console.WriteLine("Benchmark with indexes from: " + currentDateTime + "\n");
+                Console.WriteLine("Benchmark (" + benchmarkLevel + ") with indexes from: " + currentDateTime + "\n");
 
                 benchmark.PrintBenchmark();
                 Console.WriteLine();
@@ -115,7 +130,11 @@ namespace SQLRedundancyBenchmark
 
             // Restore the original standard output stream
             Console.SetOut(originalOutput);
-            Console.WriteLine("\nFile Output/benchmark_with_indexes.txt created.\n");
+            Console.WriteLine("\nFile Output/benchmark_with_indexes_" + benchmarkLevel + filtered + ".txt created.\n");
+
+            // Save Results to excel file
+            benchmark.GenerateExcel("../../../Output/benchmark_with_indexes_" + benchmarkLevel + filtered + ".xlsx");
+            Console.WriteLine("File Output/benchmark_with_indexes_" + benchmarkLevel + filtered + ".xlsx created.\n");
         }
 
         private static void RegisterDbProviders()

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -12,6 +13,7 @@ using Microsoft.Data.SqlClient;
 using MySql.Data.MySqlClient;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
+using Org.BouncyCastle.Crypto.Engines;
 
 namespace RedundancyBenchmarkSQL
 {
@@ -27,10 +29,28 @@ namespace RedundancyBenchmarkSQL
         int OraclePoints = -1;
         int MySqlPoints = -1;
         int PostgreSqlPoints = -1;
-        public Benchmark(string queriesFilePath)
+
+        int QueriesCount = 0;
+
+        string BenchmarkLevel; // Values "strict" and "loose"
+
+        bool FilterQueries;
+        public Benchmark(string queriesFilePath, string benchmarkLevel, bool filterQueries)
         {
             queries = new Queries();
             queries.ReadQueriesFromFile(queriesFilePath);
+            BenchmarkLevel = benchmarkLevel;
+            FilterQueries = filterQueries;
+        }
+
+        public void SetBenchmarkLevel(string benchmarkLevel)
+        {
+            BenchmarkLevel = benchmarkLevel;
+        }
+
+        public void GenerateExcel(string name)
+        {
+            queries.GenerateExcel(name, FilterQueries);
         }
 
         public void ResetBenchmark()
@@ -69,10 +89,18 @@ namespace RedundancyBenchmarkSQL
                     PostgreSqlPoints = 0;
                     break;
             }
+
+            QueriesCount = 0;
+
             for (int i = 0; i < queries.Count(); i++)
             {
                 List<string> correctPlan = GetQueryExecutionPlan(queries.queryList[i].GetCorrectQuery(providerName));
                 List<string> redundantPlan = GetQueryExecutionPlan(queries.queryList[i].GetRedundantQuery(providerName));
+
+                if (FilterQueries && queries.queryList[i].Filter)
+                    continue;
+
+                QueriesCount++;
 
                 switch (providerName)
                 {
@@ -121,25 +149,25 @@ namespace RedundancyBenchmarkSQL
 
         public void PrintBenchmark()
         {
-            Console.WriteLine("Benchmark Results:");
+            Console.WriteLine("Benchmark Results (" + BenchmarkLevel + "):");
             if (SqlServerPoints > -1)
-                Console.WriteLine("Microsoft SQL Server: " + SqlServerPoints.ToString() + " / " + queries.Count());
+                Console.WriteLine("Microsoft SQL Server: " + SqlServerPoints.ToString() + " / " + QueriesCount);
 
             if (OraclePoints > -1)
-                Console.WriteLine("Oracle: " + OraclePoints.ToString() + " / " + queries.Count());
+                Console.WriteLine("Oracle: " + OraclePoints.ToString() + " / " + QueriesCount);
 
             if (MySqlPoints > -1)
-                Console.WriteLine("My SQL: " + MySqlPoints.ToString() + " / " + queries.Count());
+                Console.WriteLine("My SQL: " + MySqlPoints.ToString() + " / " + QueriesCount);
 
             if (PostgreSqlPoints > -1)
-                Console.WriteLine("Postgre SQL: " + PostgreSqlPoints.ToString() + " / " + queries.Count());
+                Console.WriteLine("Postgre SQL: " + PostgreSqlPoints.ToString() + " / " + QueriesCount);
         }
         public void PrintQueries()
         {
             Console.WriteLine("----------------------------------------------------------------------------------------------------");
-            Console.WriteLine("Redundancy Benchmark for " + queries.Count() + " queries:");
+            Console.WriteLine("Redundancy Benchmark (" + BenchmarkLevel + ") for " + QueriesCount + " queries:");
             Console.WriteLine("----------------------------------------------------------------------------------------------------");
-            queries.PrintQueries();
+            queries.PrintQueries(FilterQueries);
         }
 
         public List<string> GetQueryExecutionPlan(string query)
@@ -148,7 +176,10 @@ namespace RedundancyBenchmarkSQL
             switch (providerName)
             {
                 case "Microsoft.Data.SqlClient":
-                    executionPlan = GetSqlServerExecutionPlan(query);
+                    if (BenchmarkLevel == "strict")
+                        executionPlan = GetSqlServerAdvancedExecutionPlan(query);
+                    else if (BenchmarkLevel == "loose")
+                        executionPlan = GetSqlServerExecutionPlanOperations(query);
                     return executionPlan;
                 case "Oracle.ManagedDataAccess.Client":
                     executionPlan = GetOracleExecutionPlan(query);
@@ -165,7 +196,7 @@ namespace RedundancyBenchmarkSQL
             }
         }
 
-        private List<string> GetSqlServerExecutionPlan(string query)
+        private List<string> GetSqlServerAdvancedExecutionPlan(string query)
         {
             List<string> planLines = new List<string>();
 
@@ -215,7 +246,89 @@ namespace RedundancyBenchmarkSQL
                 return planLines;
             }
         }
-        
+
+        private List<string> parseXmlPlanToOperations(string executionPlanXml)
+        {
+            List<string> operations = new List<string>();
+
+            // Parse the XML to extract important operations and their objects
+            if (!string.IsNullOrEmpty(executionPlanXml))
+            {
+                XDocument xDoc = XDocument.Parse(executionPlanXml);
+                foreach (XElement relOp in xDoc.Descendants().Where(x => x.Name.LocalName == "RelOp"))
+                {
+                    XAttribute physicalOp = relOp.Attribute("PhysicalOp");
+                    XElement objectNode = relOp.Descendants().FirstOrDefault(x => x.Name.LocalName == "Object");
+                    string operationDetail = physicalOp != null ? physicalOp.Value : string.Empty;
+
+                    if (objectNode != null)
+                    {
+                        XAttribute schema = objectNode.Attribute("Schema");
+                        XAttribute table = objectNode.Attribute("Table");
+
+                        if (schema != null && table != null)
+                        {
+                            operationDetail += $" on {schema.Value}.{table.Value}";
+                        }
+                        else if (table != null)
+                        {
+                            operationDetail += $" on {table.Value}";
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(operationDetail))
+                    {
+                        operations.Add(operationDetail);
+                    }
+                }
+            }
+
+            return operations;
+        }
+
+        private List<string> GetSqlServerExecutionPlanOperations(string query)
+        {
+            // Create and open the connection
+            using (DbConnection connection = factory.CreateConnection())
+            {
+                connection.ConnectionString = connectionString;
+                connection.Open();
+
+                // Enable the execution plan XML output
+                using (DbCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "SET SHOWPLAN_XML ON";
+                    command.ExecuteNonQuery();
+                }
+
+                // Create the command to execute the user query
+                string executionPlanXml = string.Empty;
+                using (DbCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = query;
+
+                    // Execute the command and fetch the execution plan
+                    using (DbDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            // The execution plan is in the first column as XML
+                            executionPlanXml = reader.GetString(0);
+                        }
+                    }
+                }
+
+                // Disable the execution plan XML output
+                using (DbCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "SET SHOWPLAN_XML OFF";
+                    command.ExecuteNonQuery();
+                }
+
+                return parseXmlPlanToOperations(executionPlanXml);
+            }
+        }
+
         private List<string> GetMySqlExecutionPlan(string query)
         {
             List<string> plan = new List<string>();
@@ -240,8 +353,11 @@ namespace RedundancyBenchmarkSQL
                         string filtered = reader["filtered"]?.ToString() ?? "Unknown"; // Safe conversion to string
                         string extra = reader["Extra"] as string ?? "None";
 
-                        string detail = $"{selectType} on {table} ({type}), key: {key} comparing to {refColumn}, rows: {rows} (filtered {filtered}%), {extra}";
-                        plan.Add(detail);
+                        if (BenchmarkLevel == "strict")
+                            plan.Add($"{selectType} on {table} ({type}), key: {key} comparing to {refColumn}, rows: {rows} (filtered {filtered}%), {extra}");
+
+                        else if (BenchmarkLevel == "loose")
+                            plan.Add($"{selectType} on {table} ({type}), {extra}");
                     }
                 }
             }
@@ -252,7 +368,7 @@ namespace RedundancyBenchmarkSQL
         
         private List<string> GetPostgreExecutionPlan(string query)
         {
-            List<string> operations = new List<string>();
+            List<string> plan = new List<string>();
 
             using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
             {
@@ -266,14 +382,31 @@ namespace RedundancyBenchmarkSQL
                     {
                         while (reader.Read())
                         {
+                            //string planPart = reader.GetString(0);
+                            //plan.Add(planPart);
                             string planPart = reader.GetString(0);
-                            operations.Add(planPart);
+                            if (BenchmarkLevel == "loose")
+                            {
+                                // Extract operation from the planPart
+                                //var operation = ExtractOperationFromPostgrePlan(planPart);
+                                // Cut string by first parenthesis
+                                int parenthesisIndex = planPart.IndexOf('(');
+                                if (parenthesisIndex != -1)
+                                {
+                                    planPart = planPart.Substring(0, parenthesisIndex).Trim().Replace(":", "");
+                                }
+                                plan.Add(planPart);
+                            }
+                            else if (BenchmarkLevel == "strict")
+                            {
+                                plan.Add(planPart);
+                            }
                         }
                     }
                 }
             }
 
-            return operations;
+            return plan;
         }
 
         public List<string> GetOracleExecutionPlan(string query)
@@ -308,16 +441,47 @@ namespace RedundancyBenchmarkSQL
                     using (OracleDataReader reader = cmd.ExecuteReader())
                     {
                         int counter = 0;
-                        while (reader.Read())
+                        if (BenchmarkLevel == "strict")
                         {
-                            if (counter++ > 1)
+                            while (reader.Read())
                             {
-                                string planLine = reader.GetString(0);
-                                planLines.Add(planLine);
+                                if (counter++ > 1)
+                                {
+                                    string planLine = reader.GetString(0);
+
+                                    if (planLine == " ")
+                                        break;
+
+                                    planLines.Add(planLine);
+                                }
+                            }
+                        }else if (BenchmarkLevel == "loose")
+                        {
+                            while (reader.Read())
+                            {
+                                if (counter++ > 3)
+                                {
+                                    string planLine = reader.GetString(0);
+
+                                    if (planLine == " ")
+                                        break;
+
+                                    // Split the string by '|'
+                                    string[] parts = planLine.Split('|');
+
+                                    // Check if there are enough parts to perform the operation
+                                    if (parts.Length > 4)
+                                    {
+                                        // Get the string from the second to the third '|'
+                                        string extractedPart = parts[2].Trim() + " on " + parts[3].Trim();
+                                        planLines.Add(extractedPart);
+                                    }
+                                }
                             }
                         }
                     }
                 }
+                
             }
 
             return planLines;

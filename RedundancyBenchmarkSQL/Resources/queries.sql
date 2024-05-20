@@ -1,7 +1,7 @@
 ﻿----------------------------------------
 -- Category: Attributes
 ----------------------------------------
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2. Unnecessary complications (1)
 -- Description: We already know the attribute country, there is no need to have it in the SELECT.
 -- Version: redundancy
@@ -18,7 +18,7 @@ WHERE Country = 'Czech Republic'
 ----------------------------------------
 -- Category: Distinct
 ----------------------------------------
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.2. Error 2
 -- Description: Using distinct on already unique values.
 -- Version: redundancy
@@ -33,7 +33,7 @@ FROM Album
 ----------------------------------------
 -- Category: Conditions
 ----------------------------------------
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.4. Error 8
 -- Description: Duplicated (redundant) conditions with OR operator.
 -- Version: redundancy
@@ -47,7 +47,7 @@ FROM Customer
 WHERE Country = 'USA'
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.4. Error 8
 -- Description: Duplicated (redundant) conditions with AND operator.
 -- Version: redundancy
@@ -61,7 +61,7 @@ FROM Customer
 WHERE Country = 'USA'
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 1. Introduction
 -- Description: Mutually exclusive conditions.
 -- Version: redundancy
@@ -75,7 +75,7 @@ FROM Album
 WHERE 1 = 0
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.4. Error 8
 -- Description: Mutually exclusive conditions.
 -- Version: redundancy
@@ -90,7 +90,7 @@ FROM Track
 WHERE 1 = 0
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.4. Error 8
 -- Description: Using unnecessary conditions that were already fulfilled by another condition.
 -- Version: redundancy
@@ -128,7 +128,7 @@ SELECT *
 FROM InvoiceLine
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.4 Error 11
 -- Description: Unnecessary condition, comparing name to "anything".
 -- Version: redundancy
@@ -141,7 +141,7 @@ SELECT TrackId, Name
 FROM Track
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.4 Error 12, 4 Error 34
 -- Description: Using LIKE without wildcards.
 -- Version: redundancy
@@ -155,7 +155,7 @@ FROM Customer
 WHERE Country = 'USA'
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.4 Error 14
 -- Description: Unnecessary IN/EXISTS condition that could be replaced by simple comparison.
 -- Version: redundancy
@@ -172,9 +172,10 @@ FROM Customer
 WHERE Country != 'USA'
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.4 Error 13
 -- Description: Unnecessarily complicated SELECT in EXISTS-subquery. (using unnecessarily DISTINCT)
+-- Filter: true
 -- Version: redundancy
 SELECT *
 FROM Album
@@ -217,7 +218,7 @@ WHERE EXISTS (
 ----------------------------------------
 -- Category: Joins and Unions
 ----------------------------------------
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.3. Error 6
 -- Description: Using unnecessary JOIN if we only use attributes from one table.
 -- Version: redundancy
@@ -232,7 +233,7 @@ FROM Invoice
 WHERE Invoice.Total < 1
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.2 Error 4
 -- Description: JOINing table on itself that just duplicates output columns.
 -- Version: redundancy
@@ -254,7 +255,7 @@ SELECT GenreId, Name, GenreId, Name
 FROM Genre
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.8 Error 23
 -- Description: Unnecessary UNION.
 -- Version: redundancy
@@ -275,7 +276,7 @@ WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Rock')
    OR GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Jazz')
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 3 Error 26
 -- Description: UNION that could be replaced by UNION ALL.
 -- Version: redundancy
@@ -301,7 +302,7 @@ FROM Track
 WHERE GenreId = (SELECT GenreId FROM Genre WHERE Name = 'Hip Hop/Rap')
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 4 Error 35, 36
 -- Description: Using outer join that can be replaced by inner join. All tuples generated by the outer join are eliminated by the WHERE-condition.
 -- Version: redundancy
@@ -315,7 +316,7 @@ FROM Track t
 INNER JOIN InvoiceLine il ON t.TrackId = il.TrackId
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 4 Error 35
 -- Description: Condition on left table in left outer join that excludes all possible join partners.
 -- Version: redundancy
@@ -334,7 +335,7 @@ WHERE il.InvoiceLineId = 52
 ----------------------------------------
 -- Category: Aggregations
 ----------------------------------------
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.5 Error 17
 -- Description: Applying COUNT() to a column that is unique.
 -- Version: redundancy
@@ -346,9 +347,10 @@ SELECT Count(*)
 FROM Track
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.5 Error 15, 2.6 Error 22
 -- Description: Unnecessary single distinct input value aggregations that could be replaced by SELECT DISTINCT.
+-- Filter: true
 -- Version: redundancy
 SELECT MAX(UnitPrice)
 FROM Track
@@ -359,7 +361,7 @@ SELECT DISTINCT(UnitPrice)
 FROM Track
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.5 Error 16
 -- Description: Unnecessary DISTINCT in MIN / MAX aggregations.
 -- Version: redundancy
@@ -401,7 +403,7 @@ FROM Invoice
 GROUP BY CustomerId
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.6 Error 19
 -- Description: Using aggregation in subquery on id is unnecessary and redundant because there is always only one tuple per id.
 -- Version: redundancy
@@ -420,9 +422,10 @@ FROM Invoice
 ----------------------------------------
 -- Category: Grouping
 ----------------------------------------
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.6 Error 19
 -- Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
+-- Filter: true
 -- Version: redundancy
 SELECT ArtistId, COUNT(*)
 FROM Artist
@@ -433,7 +436,21 @@ SELECT ArtistId, '1'
 FROM Artist
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
+-- Reference: 2.6 Error 19
+-- Description: Using aggregation with group by on ids is unnecessary and redundant because there is always only one tuple per id.
+-- Filter: true
+-- Version: redundancy
+SELECT ArtistId, AlbumId, COUNT(*) AS Count
+FROM Album
+GROUP BY ArtistId, AlbumId
+
+-- Version: correct
+SELECT ArtistId, AlbumId, '1' AS Count
+FROM Album
+-- end
+
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.6 Error 18
 -- Description: Unnecessary GROUP BY in EXISTS subquery.
 -- Version: redundancy
@@ -460,7 +477,7 @@ WHERE EXISTS (
 ----------------------------------------
 -- Category: Case
 ----------------------------------------
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.6 Error 19
 -- Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
 -- Version: redundancy
@@ -476,7 +493,7 @@ SELECT TrackId, 'Yes' AS IsUnique
 FROM Track
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.4 Error 12, 4 Error 34
 -- Description: Using LIKE without wildcards.
 -- Version: redundancy
@@ -506,7 +523,7 @@ SELECT Name, TrackId, 'Yes'
 FROM Track
 -- end
 
--- Source: Brass and Goldberg
+-- Source: Semantic errors in SQL queries: A quite complete list.
 -- Reference: 2.4. Error 8
 -- Description: Duplicated (redundant) conditions with OR operator.
 -- Version: redundancy
@@ -527,67 +544,26 @@ FROM Customer
 ----------------------------------------
 -- Category: Window
 ----------------------------------------
--- Description: Calculating average value of category (AvgAlbumTrackLength) for each row (track) instead of calculating it for all rows at once.
+-- Source: Semantic errors in SQL queries: A quite complete list.
+-- Reference: 2.6 Error 19
+-- Description: Using aggregation with group by on id is unnecessary and redundant because there is always only one tuple per id.
 -- Version: redundancy
-SELECT Name, Milliseconds, AVG(Milliseconds) OVER (PARTITION BY AlbumId) AS AvgAlbumTrackLength
-FROM
-track
+SELECT ArtistId, COUNT(*) OVER (PARTITION BY ArtistId) AS Count
+FROM Artist
 
 -- Version: correct
-SELECT
-    t1.Name,
-    t1.Milliseconds,
-    a.AvgAlbumTrackLength
-FROM
-    track AS t1
-JOIN (
-    SELECT
-        t2.AlbumId,
-        AVG(t2.Milliseconds) AS AvgAlbumTrackLength
-    FROM
-        track AS t2
-    GROUP BY
-        AlbumId
-) AS a ON t1.AlbumId = a.AlbumId
-
--- Version: oracle redundancy
-SELECT Name, Milliseconds, AVG(Milliseconds) OVER (PARTITION BY AlbumId) AS AvgAlbumTrackLength
-FROM
-track
-
--- Version: oracle correct
-SELECT
-    t1.Name,
-    t1.Milliseconds,
-    a.AvgAlbumTrackLength
-FROM
-    track t1
-JOIN (
-    SELECT
-        t2.AlbumId,
-        AVG(t2.Milliseconds) AS AvgAlbumTrackLength
-    FROM
-        track t2
-    GROUP BY
-        AlbumId
-) a ON t1.AlbumId = a.AlbumId
+SELECT ArtistId, '1'
+FROM Artist
 -- end
 
-/*
-Semantic errors that can cause redundant parts in the SQL query execution plan:
+-- Source: Semantic errors in SQL queries: A quite complete list.
+-- Reference: 2.6 Error 19
+-- Description: Using aggregation with group by on ids is unnecessary and redundant because there is always only one tuple per id.
+-- Version: redundancy
+SELECT ArtistId, AlbumId, COUNT(*) OVER (PARTITION BY ArtistId, AlbumId) AS Count
+FROM Album
 
-Joins:
-Unnecessary join operations in the query (joining tables when they are not needed).
-
-Subqueries:
-Using subqueries that do not contribute to the final result or are unnecessary.
-
-Conditions:
-Including conditions in the WHERE clause that are redundant or do not affect the query result.
-
-Grouping:
-Grouping by attributes that are not necessary for the query result, for example by ID.
-
-Aggregations:
-Unnecessary aggregations.
-*/
+-- Version: correct
+SELECT ArtistId, AlbumId, '1' AS Count
+FROM Album
+-- end
