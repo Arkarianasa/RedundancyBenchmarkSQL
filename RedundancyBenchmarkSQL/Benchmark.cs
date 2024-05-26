@@ -19,11 +19,11 @@ namespace RedundancyBenchmarkSQL
 {
     internal class Benchmark
     {
-        Queries queries;
+        Queries Queries;
 
-        private DbProviderFactory factory;
-        private string connectionString;
-        string providerName;
+        private DbProviderFactory Factory;
+        private string ConnectionString;
+        string ProviderName;
 
         int SqlServerPoints = -1;
         int OraclePoints = -1;
@@ -37,8 +37,8 @@ namespace RedundancyBenchmarkSQL
         bool FilterQueries;
         public Benchmark(string queriesFilePath, string benchmarkLevel, bool filterQueries)
         {
-            queries = new Queries();
-            queries.ReadQueriesFromFile(queriesFilePath);
+            Queries = new Queries();
+            Queries.ReadQueriesFromFile(queriesFilePath);
             BenchmarkLevel = benchmarkLevel;
             FilterQueries = filterQueries;
         }
@@ -50,7 +50,7 @@ namespace RedundancyBenchmarkSQL
 
         public void GenerateExcel(string name)
         {
-            queries.GenerateExcel(name, FilterQueries);
+            Queries.GenerateExcel(name, FilterQueries);
         }
 
         public void ResetBenchmark()
@@ -60,21 +60,21 @@ namespace RedundancyBenchmarkSQL
             MySqlPoints = -1;
             PostgreSqlPoints = -1;
 
-            queries.ResetQueriesResults();
+            Queries.ResetQueriesResults();
         }
         public void SetDatabaseSystem(string providerName, string connectionString)
         {
-            this.providerName = providerName;
+            this.ProviderName = providerName;
             
             if (providerName != "MySql")
-                factory = DbProviderFactories.GetFactory(providerName);
+                Factory = DbProviderFactories.GetFactory(providerName);
 
-            this.connectionString = connectionString;
+            this.ConnectionString = connectionString;
         }
 
         public void RunBenchmark()
         {
-            switch (providerName)
+            switch (ProviderName)
             {
                 case "Microsoft.Data.SqlClient":
                     SqlServerPoints = 0;
@@ -92,59 +92,59 @@ namespace RedundancyBenchmarkSQL
 
             QueriesCount = 0;
 
-            for (int i = 0; i < queries.Count(); i++)
+            for (int i = 0; i < Queries.Count(); i++)
             {
-                List<string> correctPlan = GetQueryExecutionPlan(queries.queryList[i].GetCorrectQuery(providerName));
-                List<string> redundantPlan = GetQueryExecutionPlan(queries.queryList[i].GetRedundantQuery(providerName));
+                List<string> correctPlan = GetQueryExecutionPlan(Queries.QueryList[i].GetCorrectQuery(ProviderName));
+                List<string> redundantPlan = GetQueryExecutionPlan(Queries.QueryList[i].GetRedundantQuery(ProviderName));
 
-                if (FilterQueries && queries.queryList[i].Filter)
+                if (FilterQueries && Queries.QueryList[i].Filter)
                     continue;
 
                 QueriesCount++;
 
-                switch (providerName)
+                switch (ProviderName)
                 {
                     case "Microsoft.Data.SqlClient":
-                        queries.queryList[i].SetSqlServerPlan("correct", correctPlan);
-                        queries.queryList[i].SetSqlServerPlan("redundant", redundantPlan);
+                        Queries.QueryList[i].SetSqlServerPlan("correct", correctPlan);
+                        Queries.QueryList[i].SetSqlServerPlan("redundant", redundantPlan);
                         if (correctPlan.OrderBy(x => x).SequenceEqual(redundantPlan.OrderBy(x => x)))
                         {
                             SqlServerPoints++;
-                            queries.queryList[i].SqlServerComparison = true;
+                            Queries.QueryList[i].SqlServerComparison = true;
                         }
                         break;
                     case "Oracle.ManagedDataAccess.Client":
-                        queries.queryList[i].SetOraclePlan("correct", correctPlan);
-                        queries.queryList[i].SetOraclePlan("redundant", redundantPlan);
+                        Queries.QueryList[i].SetOraclePlan("correct", correctPlan);
+                        Queries.QueryList[i].SetOraclePlan("redundant", redundantPlan);
                         if (correctPlan.OrderBy(x => x).SequenceEqual(redundantPlan.OrderBy(x => x)))
                         {
                             OraclePoints++;
-                            queries.queryList[i].OracleComparison = true;
+                            Queries.QueryList[i].OracleComparison = true;
                         }
                         break;
                     case "MySql":
-                        queries.queryList[i].SetMySqlPlan("correct", correctPlan);
-                        queries.queryList[i].SetMySqlPlan("redundant", redundantPlan);
+                        Queries.QueryList[i].SetMySqlPlan("correct", correctPlan);
+                        Queries.QueryList[i].SetMySqlPlan("redundant", redundantPlan);
                         if (correctPlan.OrderBy(x => x).SequenceEqual(redundantPlan.OrderBy(x => x)))
                         {
                             MySqlPoints++;
-                            queries.queryList[i].MySqlComparison = true;
+                            Queries.QueryList[i].MySqlComparison = true;
                         }
                         break;
                     case "Npgsql":
-                        queries.queryList[i].SetPostgreSqlPlan("correct", correctPlan);
-                        queries.queryList[i].SetPostgreSqlPlan("redundant", redundantPlan);
+                        Queries.QueryList[i].SetPostgreSqlPlan("correct", correctPlan);
+                        Queries.QueryList[i].SetPostgreSqlPlan("redundant", redundantPlan);
                         if (correctPlan.OrderBy(x => x).SequenceEqual(redundantPlan.OrderBy(x => x)))
                         {
                             PostgreSqlPoints++;
-                            queries.queryList[i].PostgreSqlComparison = true;
+                            Queries.QueryList[i].PostgreSqlComparison = true;
                         }
                         break;
 
                 }
             }
 
-            Console.WriteLine(providerName + " benchamark finished.");
+            Console.WriteLine(ProviderName + " benchamark finished.");
         }
 
         public void PrintBenchmark()
@@ -167,13 +167,13 @@ namespace RedundancyBenchmarkSQL
             Console.WriteLine("----------------------------------------------------------------------------------------------------");
             Console.WriteLine("Redundancy Benchmark (" + BenchmarkLevel + ") for " + QueriesCount + " queries:");
             Console.WriteLine("----------------------------------------------------------------------------------------------------");
-            queries.PrintQueries(FilterQueries);
+            Queries.PrintQueries(FilterQueries);
         }
 
         public List<string> GetQueryExecutionPlan(string query)
         {
             List<string> executionPlan = new List<string>();
-            switch (providerName)
+            switch (ProviderName)
             {
                 case "Microsoft.Data.SqlClient":
                     if (BenchmarkLevel == "strict")
@@ -201,9 +201,9 @@ namespace RedundancyBenchmarkSQL
             List<string> planLines = new List<string>();
 
             // Create and open the connection
-            using (DbConnection connection = factory.CreateConnection())
+            using (DbConnection connection = Factory.CreateConnection())
             {
-                connection.ConnectionString = connectionString;
+                connection.ConnectionString = ConnectionString;
                 connection.Open();
 
                 // Enable the execution plan output
@@ -289,9 +289,9 @@ namespace RedundancyBenchmarkSQL
         private List<string> GetSqlServerExecutionPlanOperations(string query)
         {
             // Create and open the connection
-            using (DbConnection connection = factory.CreateConnection())
+            using (DbConnection connection = Factory.CreateConnection())
             {
-                connection.ConnectionString = connectionString;
+                connection.ConnectionString = ConnectionString;
                 connection.Open();
 
                 // Enable the execution plan XML output
@@ -333,7 +333,7 @@ namespace RedundancyBenchmarkSQL
         {
             List<string> plan = new List<string>();
 
-            using (MySqlConnection connection = new MySqlConnection(connectionString))
+            using (MySqlConnection connection = new MySqlConnection(ConnectionString))
             {
                 connection.Open();
 
@@ -370,7 +370,7 @@ namespace RedundancyBenchmarkSQL
         {
             List<string> plan = new List<string>();
 
-            using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
+            using (NpgsqlConnection connection = new NpgsqlConnection(ConnectionString))
             {
                 connection.Open();
 
@@ -413,7 +413,7 @@ namespace RedundancyBenchmarkSQL
         {
             List<string> planLines = new List<string>();
 
-            using (OracleConnection connection = new OracleConnection(connectionString))
+            using (OracleConnection connection = new OracleConnection(ConnectionString))
             {
                 connection.Open();
 
@@ -489,7 +489,7 @@ namespace RedundancyBenchmarkSQL
 
         public void RunScript(string script)
         {
-            switch (providerName)
+            switch (ProviderName)
             {
                 case "Microsoft.Data.SqlClient":
                     SqlServerRunScript(script); break;
@@ -510,7 +510,7 @@ namespace RedundancyBenchmarkSQL
                 throw new FileNotFoundException("File not found", scriptPath);
             }
 
-            using (var connection = new SqlConnection(connectionString)) // Ensure that `SqlConnection` is properly instantiated.
+            using (var connection = new SqlConnection(ConnectionString)) // Ensure that `SqlConnection` is properly instantiated.
             {
                 connection.Open();
                 var command = connection.CreateCommand();
@@ -540,7 +540,7 @@ namespace RedundancyBenchmarkSQL
                 throw new FileNotFoundException("File not found", scriptPath);
             }
 
-            using (var connection = new NpgsqlConnection(connectionString))
+            using (var connection = new NpgsqlConnection(ConnectionString))
             {
                 connection.Open();
                 using (var transaction = connection.BeginTransaction())
@@ -574,7 +574,7 @@ namespace RedundancyBenchmarkSQL
                 throw new FileNotFoundException("File not found", scriptPath);
             }
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = new MySqlConnection(ConnectionString))
             {
                 connection.Open();
                 var command = new MySqlCommand
@@ -607,7 +607,7 @@ namespace RedundancyBenchmarkSQL
                 throw new FileNotFoundException("File not found", scriptPath);
             }
 
-            using (var connection = new OracleConnection(connectionString))
+            using (var connection = new OracleConnection(ConnectionString))
             {
                 connection.Open();
                 var transaction = connection.BeginTransaction();

@@ -11,23 +11,23 @@ namespace RedundancyBenchmarkSQL
 {
     internal class Queries
     {
-        public List<Query> queryList { get; set; }
+        public List<Query> QueryList { get; set; }
 
         public Queries()
         {
-            queryList = new List<Query>();
+            QueryList = new List<Query>();
         }
 
         public void AddQuery(Query query)
         {
-            queryList.Add(query);
+            QueryList.Add(query);
         }
 
         public Query GetQuery(int index)
         {
-            if (index >= 0 && index < queryList.Count)
+            if (index >= 0 && index < QueryList.Count)
             {
-                return queryList[index];
+                return QueryList[index];
             }
             else
             {
@@ -37,7 +37,7 @@ namespace RedundancyBenchmarkSQL
 
         public int Count()
         {
-            return queryList.Count;
+            return QueryList.Count;
         }
 
         public void GenerateExcel(string name, bool filterQueries)
@@ -64,9 +64,9 @@ namespace RedundancyBenchmarkSQL
                 worksheet.Cells[1, 5].Value = "PostgreSql";
 
                 // Add query data
-                for (int i = 0; i < queryList.Count; i++)
+                for (int i = 0; i < QueryList.Count; i++)
                 {
-                    var query = queryList[i];
+                    var query = QueryList[i];
                     worksheet.Cells[i + 2, 1].Value = query.Description;
                     worksheet.Cells[i + 2, 2].Value = query.SqlServerComparison ? 1 : 0;
                     worksheet.Cells[i + 2, 3].Value = query.OracleComparison ? 1 : 0;
@@ -75,11 +75,11 @@ namespace RedundancyBenchmarkSQL
                 }
 
                 // Add total counts for each database provider
-                worksheet.Cells[queryList.Count + 2, 1].Value = "Total Count";
-                worksheet.Cells[queryList.Count + 2, 2].Formula = $"=SUM(B2:B{queryList.Count + 1})";
-                worksheet.Cells[queryList.Count + 2, 3].Formula = $"=SUM(C2:C{queryList.Count + 1})";
-                worksheet.Cells[queryList.Count + 2, 4].Formula = $"=SUM(D2:D{queryList.Count + 1})";
-                worksheet.Cells[queryList.Count + 2, 5].Formula = $"=SUM(E2:E{queryList.Count + 1})";
+                worksheet.Cells[QueryList.Count + 2, 1].Value = "Total Count";
+                worksheet.Cells[QueryList.Count + 2, 2].Formula = $"=SUM(B2:B{QueryList.Count + 1})";
+                worksheet.Cells[QueryList.Count + 2, 3].Formula = $"=SUM(C2:C{QueryList.Count + 1})";
+                worksheet.Cells[QueryList.Count + 2, 4].Formula = $"=SUM(D2:D{QueryList.Count + 1})";
+                worksheet.Cells[QueryList.Count + 2, 5].Formula = $"=SUM(E2:E{QueryList.Count + 1})";
 
                 // Add headers
                 worksheet.Cells[1, 8].Value = "Category";
@@ -89,17 +89,17 @@ namespace RedundancyBenchmarkSQL
                 worksheet.Cells[1, 12].Value = "MySql";
                 worksheet.Cells[1, 13].Value = "PostgreSql";
 
-                var categories = queryList.Select(q => q.Category).Distinct().ToList();
+                var categories = QueryList.Select(q => q.Category).Distinct().ToList();
 
-                var totalCounts = categories.Select(cat => queryList.Count(q => q.Category == cat)).ToList();
+                var totalCounts = categories.Select(cat => QueryList.Count(q => q.Category == cat)).ToList();
 
                 if (filterQueries)
-                    totalCounts = categories.Select(cat => queryList.Count(q => q.Category == cat && (!q.Filter))).ToList();
+                    totalCounts = categories.Select(cat => QueryList.Count(q => q.Category == cat && (!q.Filter))).ToList();
 
-                var sqlServerCounts = categories.Select(cat => queryList.Count(q => q.Category == cat && q.SqlServerComparison)).ToList();
-                var oracleCounts = categories.Select(cat => queryList.Count(q => q.Category == cat && q.OracleComparison)).ToList();
-                var mySqlCounts = categories.Select(cat => queryList.Count(q => q.Category == cat && q.MySqlComparison)).ToList();
-                var postgreSqlCounts = categories.Select(cat => queryList.Count(q => q.Category == cat && q.PostgreSqlComparison)).ToList();
+                var sqlServerCounts = categories.Select(cat => QueryList.Count(q => q.Category == cat && q.SqlServerComparison)).ToList();
+                var oracleCounts = categories.Select(cat => QueryList.Count(q => q.Category == cat && q.OracleComparison)).ToList();
+                var mySqlCounts = categories.Select(cat => QueryList.Count(q => q.Category == cat && q.MySqlComparison)).ToList();
+                var postgreSqlCounts = categories.Select(cat => QueryList.Count(q => q.Category == cat && q.PostgreSqlComparison)).ToList();
 
                 // Add query data
                 for (int i = 0; i < categories.Count; i++)
@@ -128,7 +128,7 @@ namespace RedundancyBenchmarkSQL
 
         public void PrintQueries(bool filterQueries)
         {
-            foreach (var query in queryList)
+            foreach (var query in QueryList)
             {
                 if (filterQueries && query.Filter)
                     continue;
@@ -139,9 +139,9 @@ namespace RedundancyBenchmarkSQL
 
         public void ResetQueriesResults()
         {
-            for (int i = 0; i < queryList.Count(); i++)
+            for (int i = 0; i < QueryList.Count(); i++)
             {
-                queryList[i].ResetQueryResult();
+                QueryList[i].ResetQueryResult();
             }
         }
         public void ReadQueriesFromFile(string filePath)

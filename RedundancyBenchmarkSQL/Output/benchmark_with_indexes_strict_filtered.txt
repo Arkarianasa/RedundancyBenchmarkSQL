@@ -1,4 +1,4 @@
-Benchmark (strict) with indexes from: 20.05.2024 20:37:57
+Benchmark (strict) with indexes from: 26.05.2024 7:56:45
 
 Benchmark Results (strict):
 Microsoft SQL Server: 10 / 30
